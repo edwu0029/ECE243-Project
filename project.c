@@ -11,6 +11,9 @@ void plot_pixel(int x, int y, short int line_color);
 void clear_screen();
 void draw_background();
 void wait_for_vsync();
+void draw_character(int x, int y);
+void erase_temp(int x, int y);
+void draw_box(int x, int y);
 
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
@@ -28,6 +31,8 @@ int main(void) {
   clear_screen();  // pixel_buffer_start points to the pixel buffer
   wait_for_vsync();
   draw_background();
+  draw_character(120-1, 179);
+  draw_box(132-1, 179);
 }
 
 void plot_pixel(int x, int y, short int line_color) {
@@ -66,6 +71,17 @@ void draw_character(int x, int y) {
       if (character[counter] != 1) {
         plot_pixel(x + j, y + i, character[counter]);
       }
+      counter++;
+    }
+  }
+}
+
+// Function to draw the crates that are pushed
+void draw_box(int x, int y) {
+  int counter = 0;
+  for (int i = 0; i < 12; i++) {
+    for(int j = 0; j < 12; j++) {
+      plot_pixel(x + j, y + i, box[counter]);
       counter++;
     }
   }
