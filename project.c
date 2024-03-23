@@ -58,6 +58,28 @@ void draw_background() {
     }
 }
 
+// Function to draw character at specified location
+void draw_character(int x, int y) {
+  int counter = 0;
+  for (int i = 0; i < 12; i++) {
+    for (int j = 0; j < 12; j++) {
+      if (character[counter] != 1) {
+        plot_pixel(x + j, y + i, character[counter]);
+      }
+      counter++;
+    }
+  }
+}
+
+// Temporary erase function with purple background (12x12)
+void erase_temp(int x, int y) {
+  for (int i = 0; i < 12; i++) {
+    for (int j = 0; j < 12; j++) {
+      plot_pixel(x + i, y + j, 0x99f7);
+    }
+  }
+}
+
 // Function to wait 1/60th of a second (for the current frame to finish rendering)
 void wait_for_vsync() {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
