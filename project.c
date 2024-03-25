@@ -3,20 +3,34 @@
 #include <string.h>
 #include <globals.h>
 
+// Double Buffer
 volatile int pixel_buffer_start;       // global variable
 short int Buffer1[240][512];  // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
 
+//Game State
+char gameState[20][26][3];
+#define ROWS 20
+#define COLS 26
+
+// Function Declarations
+void move_tile(int x, int y, int dirX, int dirY);
+bool check_move_bounds(int x, int y, int dirX, int dirY);
+bool check_box_move(int boxX, int boxY, int dirX, int dirY);
+
 void plot_pixel(int x, int y, short int line_color);
 void clear_screen();
+void undraw_gamestate();
+void draw_gamestate();
 void draw_background();
 void wait_for_vsync();
-void draw_character(int x, int y);
 void erase_temp(int x, int y);
+void draw_character(int x, int y);
 void draw_box(int x, int y);
 
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
+  volatile int *keys_ptr = (int *)0xFF200050;
 
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) =
@@ -31,10 +45,107 @@ int main(void) {
   clear_screen();  // pixel_buffer_start points to the pixel buffer
   wait_for_vsync();
   draw_background();
-  draw_character(120-1, 179);
-  draw_box(132-1, 179);
+
+  //Initial game state (TEMPORARY)
+  gameState[15][15][0] = 'P';
+  gameState[0][0][0] = 'B';
+  gameState[2][5][0] = 'B';
+  gameState[2][6][0] = 'B';
+  gameState[19][25][0] = 'B';
+  gameState[10][23][0] = 'B';
+  gameState[15][17][0] = 'B';
+
+  //Main game loop
+  int characterX = 15;
+  int characterY = 15;
+
+  while(1){
+    /*-------------------- Undraw -------------------------*/
+    undraw_gamestate();
+    //Shift gameStates
+    for(int r = 0;r<ROWS;r++){
+      for(int c = 0;c<COLS;c++){
+        gameState[r][c][2] = gameState[r][c][1];
+        gameState[r][c][1] = gameState[r][c][0];
+      }
+    }
+
+    /*-------------------- Redraw -------------------------*/
+    draw_gamestate();
+
+    /*-------------------- Getting & Process Input -------------------------*/
+    int edgecapture = *(keys_ptr+3) & 0xF;
+    int dirX = 0;
+    int dirY = 0;
+    if(edgecapture & 0b1){
+      //Key 0 pressed [UP]
+      dirY--;
+      *(keys_ptr+3) = edgecapture;
+    }else if(edgecapture & 0b10){
+      //Key 1 pressed [DOWN]
+      dirY++;
+      *(keys_ptr+3) = edgecapture;
+    }else if(edgecapture & 0b100){
+      //Key 2 pressed [LEFT]
+      dirX--;
+      *(keys_ptr+3) = edgecapture;
+    }else if(edgecapture & 0b1000){
+      //Key 3 pressed [RIGHT]
+      dirX++;
+      *(keys_ptr+3) = edgecapture;
+    }
+
+    //Check if character move is in bounds
+    if(check_move_bounds(characterX, characterY, dirX, dirY)){
+      //If there is a box to push, move box first
+      bool validBoxPush = gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY);
+      if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
+        move_tile(characterX+dirX, characterY+dirY, dirX, dirY); //Move box
+        move_tile(characterX, characterY, dirX, dirY); //Move character
+        characterX+=dirX;
+        characterY+=dirY;
+      }else if(gameState[characterY+dirY][characterX+dirX][0]!='B'){
+        //No box, can move character
+        move_tile(characterX, characterY, dirX, dirY);
+        characterX+=dirX;
+        characterY+=dirY;
+      }
+    }
+  }
+
+  /*-------------------- Wait for double buffer -------------------------*/
+  wait_for_vsync(); // swap front and back buffers on VGA vertical sync
+  pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+  // draw_character(120-1, 179);
+  // draw_box(132-1, 179);
 }
 
+/*-------------------- MOVEMENT -------------------------*/
+//Move a tile(character, box, etc) in a certain direction
+void move_tile(int x, int y, int dirX, int dirY){
+  char temp = gameState[y][x][0];
+  gameState[y][x][0] = ' '; //Replace with empty
+  gameState[y+dirY][x+dirX][0] = temp;
+}
+//Check if this move is valid based on its bounds
+bool check_move_bounds(int x, int y, int dirX, int dirY){
+  return 0<=x+dirX && x+dirX<COLS && 0<=y+dirY && y+dirY<ROWS;
+}
+//check if box can be moved in the certain direction
+bool check_box_move(int boxX, int boxY, int dirX, int dirY){
+  //Check if it is blocked by bounds
+  if(!check_move_bounds(boxX, boxY, dirX, dirY)){
+    return false;
+  }
+  //Check if it is blocked another box
+  if(gameState[boxY+dirY][boxX+dirX][0]=='B'){
+    return false;
+  }
+  return true;
+}
+
+/*-------------------- DRAWING -------------------------*/
 void plot_pixel(int x, int y, short int line_color) {
   volatile short int *one_pixel_address;
 
@@ -52,14 +163,41 @@ void clear_screen() {
 	}
 }
 
+//Undraws the previously rendered game state (2 frames before current)
+void undraw_gamestate(){
+  for(int r = 0;r<ROWS;r++){
+    for(int c = 0;c<COLS;c++){
+      if(gameState[r][c][2]!=gameState[r][c][0]){
+        //this tile needs to be undrawn since it differes
+        erase_temp(c*12, r*12);
+      }else{
+        continue;
+      }
+    }
+  }
+}
+
+//Function to draw current game state
+void draw_gamestate() {
+  for(int r = 0;r<ROWS;r++){
+    for(int c = 0;c<COLS;c++){
+      if(gameState[r][c][0]=='P'){
+        draw_character(c*12, r*12);
+      }else if(gameState[r][c][0]=='B'){
+        draw_box(c*12, r*12);
+      }
+    }
+  }
+}
+
 // Draw initial game background
 void draw_background() {
 	int counter = 0;
     for (int i = 0; i < 240; i++) {
-        for (int j = 0; j < 320; j++) {
-            plot_pixel(j, i, background[counter]);
-			counter++;
-        }
+      for (int j = 0; j < 320; j++) {
+        plot_pixel(j, i, background[counter]);
+			  counter++;
+      }
     }
 }
 
