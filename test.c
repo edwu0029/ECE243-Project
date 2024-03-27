@@ -376,22 +376,38 @@ const short int box_done[]  = {
   0x4967, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0xe510, 0x4967
 };
 
+const short int wall1[] = {
+  1, 1, 1, 1, 1, 0x0000, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 0x0000, 0x67bf, 0x0000, 1, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 0x5edc, 0x67bf, 0xffff, 0x0000, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 0x5edc, 0x67bf, 0x67bf, 0x0000, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 0x5edc, 0x67bf, 0x67bf, 0x0000, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 0x5edc, 0x67bf, 0x67bf, 0x0000, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 0x5edc, 0x67bf, 0x67bf, 0x0000, 1, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x5edc, 0x5edc, 0x67bf, 0x67bf, 0x4df8, 0x0000, 0x67bf, 0xffff, 0x0000, 
+  0x0000, 0x67bf, 0x67bf, 0x0000, 0x5edc, 0x4df8, 0x4df8, 0x0000, 0x67bf, 0x67bf, 0x4df8, 0x0000, 
+  0x0000, 0x4df8, 0x5edc, 0x67bf, 0x0000, 0x4df8, 0x0000, 0x67bf, 0x5edc, 0x4df8, 0x0000, 1, 
+  1, 0x0000, 0x4df8, 0x5edc, 0x5edc, 0x0000, 0x67bf, 0x5edc, 0x4df8, 0x0000, 1, 1, 
+  1, 1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 1, 1, 1
+};
+
 char gameState[20][26][3];
-char level1GameState[8][8] = {{' ', ' ', '-', '-', '-', '-', '-', ' '},
-                              {'-', '-', '-', ' ', ' ', ' ', '-', ' '},
+char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
+                              {'-', '-', '-', ' ', ' ', ' ', '-', '-'},
                               {'-', ' ', 'B', ' ', 'W', ' ', '-', '-'},
                               {'-', ' ', 'W', ' ', ' ', 'F', ' ', '-'},
                               {'-', ' ', ' ', ' ', ' ', 'W', ' ', '-'},
                               {'-', '-', ' ', 'W', ' ', ' ', ' ', '-'},
-                              {' ', '-', 'P', ' ', ' ', '-', '-', '-'},
-                              {' ', '-', '-', '-', '-', '-', ' ', ' '}};
+                              {'-', '-', 'P', ' ', ' ', '-', '-', '-'},
+                              {'-', '-', '-', '-', '-', '-', '-', '-'}};
 char initialGameState[20][26];
-int characterX = 15;
-int characterY = 15;
-int initialX = 15;
-int initialY = 15;
-#define ROWS 15
-#define COLS 15
+int characterX;
+int characterY;
+// First dimension: number of levels
+// Second dimension: 2 for both an x and y coord, 2 for number of level rows and columns, 2 for inital character coords
+// 2 for the dimensions of the displayed background array.
+int mapVals[1][8] = {{111, 99, 8, 8, 2, 6, 72, 72}};
+int activeLevel;
 
 void move_tile(int x, int y, int dirX, int dirY);
 bool check_move_bounds(int x, int y, int dirX, int dirY);
@@ -402,18 +418,18 @@ void plot_pixel(int x, int y, short int line_color);
 void clear_screen();
 void undraw_gamestate();
 void draw_gamestate();
-void draw_background(int num_background);
+void draw_background();
 void wait_for_vsync();
 void erase_temp(int x, int y);
 void draw_character(int x, int y);
 void draw_box(int x, int y, const short int boxArray[]);
 void draw_highlight(int x, int y);
+void draw_wall(int x, int y, int wallNum);
 
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   volatile int *keys_ptr = (int *)0xFF200050;
   volatile int *switches_ptr = (int *)0xFF200040;
-  int activeLevel;
 
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) =
@@ -434,11 +450,14 @@ int main(void) {
   while (levelSelect == 0) {
 	  levelSelect = *switches_ptr;
   }
-  draw_background(1);
   activeLevel = 1;
-  for (int r = 0; r < 8; r++) {
-    for (int c = 0; c < 8; c++) {
-      gameState[r][c][0] = level1GameState[r][c];
+  draw_background();
+  characterX = mapVals[activeLevel - 1][4];
+  characterY = mapVals[activeLevel - 1][5];
+  for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
+    for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
+      if (activeLevel == 1)
+        gameState[r][c][0] = level1GameState[r][c];
     }
   }
   
@@ -448,8 +467,8 @@ int main(void) {
     /*-------------------- Undraw -------------------------*/
     undraw_gamestate();
     //Shift gameStates
-    for(int r = 0;r<ROWS;r++){
-      for(int c = 0;c<COLS;c++){
+    for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
+      for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
         gameState[r][c][2] = gameState[r][c][1];
         gameState[r][c][1] = gameState[r][c][0];
       }
@@ -498,8 +517,8 @@ int main(void) {
           move_tile(characterX, characterY, dirX, dirY); //Move character
           characterX+=dirX;
           characterY+=dirY;
-        }else if(gameState[characterY+dirY][characterX+dirX][0]!='B'){
-          //No box, can move character
+        }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-' ){
+          //No box, wall or boundary, can move character
           move_tile(characterX, characterY, dirX, dirY);
           characterX+=dirX;
           characterY+=dirY;
@@ -524,7 +543,7 @@ void move_tile(int x, int y, int dirX, int dirY){
 
 //Check if this move is valid based on its bounds
 bool check_move_bounds(int x, int y, int dirX, int dirY){
-  return 0<=x+dirX && x+dirX<COLS && 0<=y+dirY && y+dirY<ROWS;
+  return gameState[x+dirX][y+dirY][0] !=  '-' && gameState[x+dirX][y+dirY][0] != 'W';
 }
 
 //check if box can be moved in the certain direction
@@ -533,8 +552,8 @@ bool check_box_move(int boxX, int boxY, int dirX, int dirY){
   if(!check_move_bounds(boxX, boxY, dirX, dirY)){
     return false;
   }
-  //Check if it is blocked another box
-  if(gameState[boxY+dirY][boxX+dirX][0]=='B'){
+  //Check if it is blocked another box or wall
+  if(gameState[boxY+dirY][boxX+dirX][0]=='B' || gameState[boxY+dirY][boxX+dirX][0]=='W' || gameState[boxY+dirY][boxX+dirX][0]=='-'){
     return false;
   }
   return true;
@@ -560,11 +579,11 @@ void clear_screen() {
 
 //Undraws the previously rendered game state (2 frames before current)
 void undraw_gamestate(){
-  for(int r = 0;r<ROWS;r++){
-    for(int c = 0;c<COLS;c++){
-      if(gameState[r][c][2]!=gameState[r][c][0]){
+  for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
+    for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
+      if(gameState[r][c][2]!=gameState[r][c][0] && gameState[r][c][0] != '-'){
         //this tile needs to be undrawn since it differes
-        erase_temp(c*12, r*12);
+        erase_temp(mapVals[activeLevel - 1][0] + c*12, mapVals[activeLevel - 1][1] + r*12);
       }else{
         continue;
       }
@@ -574,38 +593,53 @@ void undraw_gamestate(){
 
 //Function to draw current game state
 void draw_gamestate() {
-  for(int r = 0;r<ROWS;r++){
-    for(int c = 0;c<COLS;c++){
+  for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
+    for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
       if(gameState[r][c][0]=='P'){
-        draw_character(c*12, r*12);
+        draw_character(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
       }else if(gameState[r][c][0]=='B'){
-        draw_box(c*12, r*12, box);
+        draw_box(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, box);
+      } else if (gameState[r][c][0] == 'F') {
+        draw_highlight(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
+      } else if (gameState[r][c][0] == 'W') {
+        draw_wall(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, 1);
       }
     }
   }
 }
 
-void reset_game(int activeLevel) {
-  characterX = initialX;
-  characterY = initialY;
-  if (activeLevel == 1) {
-    for (int r = 0; r < 8; r++) {
-      for (int c = 0; c < 8; c++) {
-      gameState[r][c][0] = level1GameState[r][c];
-      }
+void reset_game() {
+  characterX = mapVals[activeLevel - 1][4];
+  characterY = mapVals[activeLevel - 1][5];
+  for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
+    for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
+      if (activeLevel == 1)
+        gameState[r][c][0] = level1GameState[r][c];
     }
   }
 }
 
 // Draw initial game background
-void draw_background(int num_background) {
+void draw_background() {
 	int counter = 0;
-  if (num_background == 1) {
-    for (int i = 0; i < 72; i++) {
-      for (int j = 0; j < 72; j++) {
+  for (int i = 0; i < mapVals[activeLevel - 1][6]; i++) {
+    for (int j = 0; j < mapVals[activeLevel-1][7]; j++) {
+      if (activeLevel == 1)
         plot_pixel(123+j, 111+i, background1[counter]);
-        counter++;
+      counter++;
+    }
+  }
+}
+
+void draw_wall(int x, int y, int wallNum) {
+  int counter = 0;
+  for (int i = 0; i < 12; i++) {
+    for (int j = 0; j < 12; j++) {
+      if(wallNum == 1) {
+        if (wall1[counter] != 1)
+          plot_pixel(x+j, y+i, wall1[counter]);
       }
+      counter++;
     }
   }
 }
