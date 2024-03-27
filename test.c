@@ -543,7 +543,7 @@ void move_tile(int x, int y, int dirX, int dirY){
 
 //Check if this move is valid based on its bounds
 bool check_move_bounds(int x, int y, int dirX, int dirY){
-  return gameState[x+dirX][y+dirY][0] !=  '-' && gameState[x+dirX][y+dirY][0] != 'W';
+  return gameState[y+dirY][x+dirX][0] !=  '-' && gameState[y+dirY][x+dirX][0] != 'W';
 }
 
 //check if box can be moved in the certain direction
