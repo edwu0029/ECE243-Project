@@ -627,7 +627,9 @@ void draw_gamestate() {
     for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
       if(gameState[r][c][0]=='P'){
         draw_character(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
-      }else if(gameState[r][c][0]=='B'){
+      }else if(gameState[r][c][0]=='B' && c == doneLocs[activeLevel-1][0] && r == doneLocs[activeLevel-1][1]){
+        draw_box(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, box_done);
+      } else if (gameState[r][c][0]=='B') {
         draw_box(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, box);
       } else if (gameState[r][c][0] == 'F') {
         draw_highlight(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
