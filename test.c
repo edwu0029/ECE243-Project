@@ -424,13 +424,24 @@ char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
                               {'-', '-', ' ', 'W', ' ', ' ', ' ', '-'},
                               {'-', '-', 'P', ' ', ' ', '-', '-', '-'},
                               {'-', '-', '-', '-', '-', '-', '-', '-'}};
+
+char level2GameState[7][9] = {{'-', '-', '-', '-', '-', '-', '-', '-', '-'},
+                              {'-', 'C', ' ', '-', '-', '-', 'F', '-', '-'},
+                              {'-', ' ', 'B', '-', '-', '-', 'B', '-', '-'},
+                              {'-', ' ', 'B', 'P', '-', ' ', 'P', ' ', '-'},
+                              {'-', ' ', 'B', '-', '-', '-', ' ', '-', '-'},
+                              {'-', ' ', ' ', '-', '-', '-', '-', '-', '-'},
+                              {'-', '-', '-', '-', '-', '-', '-', '-', '-'}};
+
+//First dimension: number of levels:
 char initialGameState[20][26];
 int characterX;
 int characterY;
 // First dimension: number of levels
 // Second dimension: 2 for both an x and y coord, 2 for number of level rows and columns, 2 for inital character coords
 // 2 for the dimensions of the displayed background array.
-int mapVals[1][8] = {{111, 99, 8, 8, 2, 6, 96, 96}};
+int mapVals[2][8] = {{111, 99, 8, 8, 2, 6, 96, 96},
+                     {111, 99, 7, 9, 1, 1, 96, 96}};
 // stores the values of the spots where the boxes need to be placed
 // Used for re-putting an 'F' into the matrix
 int doneLocs[1][2] = {{5, 3}}; 
@@ -477,14 +488,17 @@ int main(void) {
   while (levelSelect == 0) {
 	  levelSelect = *switches_ptr;
   }
-  activeLevel = 1;
+  activeLevel = 2; //FOR TESTING
   draw_background();
   characterX = mapVals[activeLevel - 1][4];
   characterY = mapVals[activeLevel - 1][5];
   for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
     for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
-      if (activeLevel == 1)
+      if (activeLevel == 1) {
         gameState[r][c][0] = level1GameState[r][c];
+      }else if(activeLevel == 2){
+        gameState[r][c][0] = level2GameState[r][c];
+      }
     }
   }
   
@@ -538,7 +552,6 @@ int main(void) {
       //Check if character move is in bounds
       if(check_move_bounds(characterX, characterY, dirX, dirY)){
         //If there is a box to push, move box first
-        bool validBoxPush = gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY);
         if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
           move_tile(characterX+dirX, characterY+dirY, dirX, dirY); //Move box
           move_tile(characterX, characterY, dirX, dirY); //Move character
@@ -623,18 +636,22 @@ void undraw_gamestate(){
 
 //Function to draw current game state
 void draw_gamestate() {
+  int mapOffsetX = mapVals[activeLevel - 1][0];
+  int mapOffsetY = mapVals[activeLevel - 1][1];
   for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
     for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
-      if(gameState[r][c][0]=='P'){
-        draw_character(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
+      if(gameState[r][c][0]=='C'){
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12);
       }else if(gameState[r][c][0]=='B' && c == doneLocs[activeLevel-1][0] && r == doneLocs[activeLevel-1][1]){
-        draw_box(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, box_done);
+        draw_box(mapOffsetX+c*12, mapOffsetY+r*12, box_done);
       } else if (gameState[r][c][0]=='B') {
-        draw_box(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, box);
+        draw_box(mapOffsetX+c*12, mapOffsetY+r*12, box);
       } else if (gameState[r][c][0] == 'F') {
-        draw_highlight(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12);
+        draw_highlight(mapOffsetX+c*12, mapOffsetY+r*12);
       } else if (gameState[r][c][0] == 'W') {
-        draw_wall(mapVals[activeLevel - 1][0]+c*12, mapVals[activeLevel - 1][1]+r*12, 1);
+        draw_wall(mapOffsetX+c*12, mapOffsetY+r*12, 1);
+      } else if(gameState[r][c][0] == 'P')  {
+        draw_portal(mapOffsetX+c*12, mapOffsetY+r*12);
       }
     }
   }
@@ -645,8 +662,11 @@ void reset_game() {
   characterY = mapVals[activeLevel - 1][5];
   for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
     for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
-      if (activeLevel == 1)
+      if (activeLevel == 1){
         gameState[r][c][0] = level1GameState[r][c];
+      }else if(activeLevel == 2){
+        gameState[r][c][0] = level2GameState[r][c];
+      }
     }
   }
 }
@@ -710,6 +730,12 @@ void draw_box(int x, int y, const short int boxArray[]) {
       counter++;
     }
   }
+}
+
+//Function to draw the portals
+void draw_portal(int x, int y){
+  //TEMPORARY, just going to draw them as boxes
+  draw_box(x, y, box_done);
 }
 
 // Temporary erase function with purple background (12x12)
