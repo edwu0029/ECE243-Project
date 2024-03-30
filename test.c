@@ -428,7 +428,7 @@ char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
 char level2GameState[7][9] = {{'-', '-', '-', '-', '-', '-', '-', '-', '-'},
                               {'-', 'C', ' ', '-', '-', '-', 'F', '-', '-'},
                               {'-', ' ', 'B', '-', '-', '-', 'B', '-', '-'},
-                              {'-', ' ', 'B', 'P', '-', ' ', 'P', ' ', ' '},
+                              {'-', ' ', 'B', 'P', '-', ' ', 'P', ' ', '-'},
                               {'-', ' ', 'B', '-', '-', '-', ' ', '-', '-'},
                               {'-', ' ', ' ', '-', '-', '-', '-', '-', '-'},
                               {'-', '-', '-', '-', '-', '-', '-', '-', '-'}};
@@ -437,6 +437,17 @@ char level2GameState[7][9] = {{'-', '-', '-', '-', '-', '-', '-', '-', '-'},
 char initialGameState[20][26];
 int characterX;
 int characterY;
+
+//Indicates the 4 possible moves with [dirX, dirY] in CW
+int possibleMoves[4][2] = {{0, 1},
+                           {-1, 0},
+                           {0, -1},
+                           {1, 0}};
+bool pushAfterTeleport;
+int newDirX;
+int newDirY;
+
+
 // First dimension: number of levels
 // Second dimension: 2 for both an x and y coord, 2 for number of level rows and columns, 2 for inital character coords
 // 2 for the dimensions of the displayed background array.
@@ -457,6 +468,7 @@ void move_tile(int x, int y, int dirX, int dirY);
 void teleport_tile(int x1, int y1, int x2, int y2);
 bool check_move_bounds(int x, int y, int dirX, int dirY);
 bool check_box_move(int boxX, int boxY, int dirX, int dirY);
+bool check_teleport(int teleportX, int teleportY, int dirX, int dirY, bool character);
 void reset_game();
 
 void plot_pixel(int x, int y, short int line_color);
@@ -570,18 +582,20 @@ int main(void) {
             teleportY = portalConnections[activeLevel-1][0];
             teleportX = portalConnections[activeLevel-1][1];
           }
-          //Check if there is moveable box on other side of portal
-          if(gameState[teleportY+dirY][teleportX+dirX][0]=='B' && check_box_move(teleportX+dirX, teleportY+dirY, dirX, dirY)){
-            //Move the box first on the otherside of portal, then character
-            move_tile(teleportX+dirX, teleportY+dirY, dirX, dirY); //Move box on other side
-            teleport_tile(characterX, characterY, teleportX+dirX, teleportY+dirY); //Teleport character
-            characterX = teleportX+dirX;
-            characterY = teleportY+dirY;
-          }else if(gameState[teleportY+dirY][teleportX+dirX][0]!='B' && check_move_bounds(teleportX, teleportY, dirX, dirY)){
-            //Empty on other side, simply move character
-            teleport_tile(characterX, characterY, teleportX+dirX, teleportY+dirY);
-            characterX = teleportX+dirX;
-            characterY = teleportY+dirY;
+          //Check if character can teleport
+          if(check_teleport(teleportX, teleportY, dirX, dirY, true)){
+            if(pushAfterTeleport){
+              //We must push a box on the otherside, then teleport
+              move_tile(teleportX+newDirX, teleportY+newDirY, newDirX, newDirY); //Move box on other side
+              teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY); //Teleport character
+              characterX = teleportX+newDirX;
+              characterY = teleportY+newDirY;
+            }else{
+              //Just teleport character
+              teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY);
+              characterX = teleportX+newDirX;
+              characterY = teleportY+newDirY;
+            }
           }
         }else if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
           //Moving a box
@@ -597,9 +611,9 @@ int main(void) {
               teleportY = portalConnections[activeLevel-1][0];
               teleportX = portalConnections[activeLevel-1][1];
             }
-            if(gameState[teleportY+dirY][teleportX+dirX][0]!='B' && check_box_move(teleportX, teleportY, dirX, dirY)){
+            if(check_teleport(teleportX, teleportY, dirX, dirY, false)){
               //Box is being moved through a portal
-              teleport_tile(characterX+dirX, characterY+dirY, teleportX+dirX, teleportY+dirY); //Teleport box
+              teleport_tile(characterX+dirX, characterY+dirY, teleportX+newDirX, teleportY+newDirY); //Teleport box
               move_tile(characterX, characterY, dirX, dirY); //Move character
               characterX+=dirX;
               characterY+=dirY;
@@ -650,7 +664,44 @@ void teleport_tile(int x1, int y1, int x2, int y2){
 bool check_move_bounds(int x, int y, int dirX, int dirY){
   return gameState[y+dirY][x+dirX][0] !=  '-' && gameState[y+dirY][x+dirX][0] != 'W';
 }
-
+//Check if it is possible to move to 
+bool check_teleport(int teleportX, int teleportY, int dirX, int dirY, bool character){
+  //Find the index of the passed in direction in possibleMoves
+  int idx = 0;
+  for(int i = 0;i<4;i++){
+    if(dirX==possibleMoves[i][0] && dirY==possibleMoves[i][1]){
+      idx = i;
+      break;
+    }
+  }
+  //Loop through directions in CW to find any empty space
+  for(int i = 0;i<4;i++){
+    //newDirX and newDirY are global variables
+    newDirX = possibleMoves[(i+idx)%4][0];
+    newDirY = possibleMoves[(i+idx)%4][1];
+    if(gameState[teleportY+newDirY][teleportX+newDirX][0]==' '){
+      return true;
+    }
+  }
+  if(!character){
+    //Since we are teleporting box and theres no space, teleport not possible
+    return false;
+  }
+  //pushAfterTeleport is a global variable
+  pushAfterTeleport = true;
+  //Since we are teleporting character, check if there is pushable box now
+  for(int i = 0;i<4;i++){
+    //newDirX and newDirY are global variables
+    newDirX = possibleMoves[(i+idx)%4][0];
+    newDirY = possibleMoves[(i+idx)%4][1];
+    if(gameState[teleportY+newDirY][teleportX+newDirX][0]=='B'
+      && check_box_move(teleportX+newDirX, teleportY+newDirY, newDirX, newDirY)){
+      return true;
+    }
+  }
+  //No space even considering box push
+  return false;
+}
 //check if box can be moved in the certain direction
 bool check_box_move(int boxX, int boxY, int dirX, int dirY){
   //Check if it is blocked by bounds
