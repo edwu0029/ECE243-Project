@@ -524,6 +524,9 @@ int doneLocs[2][2] = {{5, 3},
                       {6, 1}}; 
 int activeLevel;
 
+// Statistics for the current level
+int numOfSteps;
+
 void move_tile(int x, int y, int dirX, int dirY, bool changeChar);
 void teleport_tile(int x1, int y1, int x2, int y2);
 bool check_move_bounds(int x, int y, int dirX, int dirY);
@@ -650,11 +653,15 @@ int main(void) {
               teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY); //Teleport character
               characterX = teleportX+newDirX;
               characterY = teleportY+newDirY;
+
+              numOfSteps++;
             }else{
               //Just teleport character
               teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY);
               characterX = teleportX+newDirX;
               characterY = teleportY+newDirY;
+
+              numOfSteps++;
             }
           }
         }else if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
@@ -677,6 +684,8 @@ int main(void) {
               move_tile(characterX, characterY, dirX, dirY, true); //Move character
               characterX+=dirX;
               characterY+=dirY;
+
+              numOfSteps++;
             }
           }else{
             //Box just being moved normally
@@ -684,12 +693,16 @@ int main(void) {
             move_tile(characterX, characterY, dirX, dirY, true); //Move character
             characterX+=dirX;
             characterY+=dirY;
+
+            numOfSteps++;
           }
         }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-'){
           //No box, wall or boundary, can move character
           move_tile(characterX, characterY, dirX, dirY, false);
           characterX+=dirX;
           characterY+=dirY;
+
+          numOfSteps++;
         }
       }
     }
