@@ -1,6 +1,7 @@
 #include "stdbool.h"
 #include "stdlib.h"
 #include <string.h>
+#include <stdio.h>
 
 volatile int pixel_buffer_start;       // global variable
 short int Buffer1[240][512];  // 240 rows, 512 (320 + padding) columns
@@ -526,6 +527,10 @@ int activeLevel;
 
 // Statistics for the current level
 int numOfSteps;
+int numOfResets;
+
+//Hex values
+volatile int *hex0_ptr;
 
 void move_tile(int x, int y, int dirX, int dirY, bool changeChar);
 void teleport_tile(int x1, int y1, int x2, int y2);
@@ -546,10 +551,16 @@ void draw_box(int x, int y, const short int boxArray[]);
 void draw_highlight(int x, int y);
 void draw_wall(int x, int y, int wallNum);
 
+// =================== HEX DISPLAY =========================
+unsigned int digit_to_hex_val(unsigned int val);
+void set_hex(int hexNum, unsigned int val);
+
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   volatile int *keys_ptr = (int *)0xFF200050;
   volatile int *switches_ptr = (int *)0xFF200040;
+
+  hex0_ptr = (int *)0xFF200020;
 
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) =
@@ -584,9 +595,17 @@ int main(void) {
     }
   }
   
+  //Initally set statistics for game
+  numOfSteps = 0;
+  numOfResets = 0;
+
   //Main game loop
 
   while(1){
+    /* ------------------- Update Step Counter -------------------------*/
+    set_hex(0, digit_to_hex_val(numOfSteps%10));
+    set_hex(1, digit_to_hex_val(numOfSteps/10));
+
     /*-------------------- Undraw -------------------------*/
     undraw_gamestate();
     //Shift gameStates
@@ -612,6 +631,7 @@ int main(void) {
 
     if (reset) {
       reset_game(activeLevel);
+      numOfResets++;
     } else {
       if(edgecapture & 0b1){
         //Key 0 pressed [UP]
@@ -632,7 +652,7 @@ int main(void) {
       }
     
       //Check if character move is in bounds
-      if(check_move_bounds(characterX, characterY, dirX, dirY)){
+      if( (dirX!=0 || dirY!=0) && check_move_bounds(characterX, characterY, dirX, dirY)){
         if(gameState[characterY+dirY][characterX+dirX][0]=='P'){
           //Entering a Portal
           //Determine which portal we should teleport to
@@ -708,7 +728,6 @@ int main(void) {
     }
 
   }
-
   /*-------------------- Wait for double buffer -------------------------*/
   wait_for_vsync(); // swap front and back buffers on VGA vertical sync
   pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
@@ -1006,4 +1025,41 @@ void wait_for_vsync() {
   }
 }
 
-
+// =================== HEX DISPLAY =========================
+//Converts a digit to its corresponding hex segment display value
+unsigned int digit_to_hex_val(unsigned int val){
+  if(val==1){
+    return 0x06;
+  }else if(val==2){
+    return 0x5B;
+  }else if(val==3){
+    return 0x4F;
+  }else if(val==4){
+    return 0x66;
+  }else if(val==5){
+    return 0x6D;
+  }else if(val==6){
+    return 0x7D;
+  }else if(val==7){
+    return 0x07;
+  }else if(val==8){
+    return 0x7F;
+  }else if(val==9){
+    return 0x6F;
+  }else{
+    //Assume 0 by default
+    return 0x3F;
+  }
+}
+void set_hex(int hexNum, unsigned int val){
+  unsigned int t = *hex0_ptr;
+  if(hexNum==0){
+    *hex0_ptr = (t & 0xFFFFFF00)+(val);
+  }else if(hexNum==1){
+    *hex0_ptr = (t & 0xFFFF00FF)+(val << 8);
+  }else if(hexNum==2){
+    *hex0_ptr = (t & 0xFF00FFFF)+(val << 16);
+  }else if(hexNum==3){
+    *hex0_ptr = (t & 0x00FFFFFF)+(val << 24);
+  }
+}
