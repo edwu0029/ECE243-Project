@@ -415,6 +415,66 @@ const short int wall1[] = {
   1, 1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 1, 1, 1
 };
 
+const short int push_right[]  = {
+  1, 1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 
+  1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 
+  1, 1, 1, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 1, 
+  1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 
+  1, 1, 1, 0xeaa9, 0xeaa9, 0xeaa9, 0xeaa9, 0xfdf0, 0xfdf0, 0x0000, 0xfdf0, 1, 
+  1, 1, 1, 0xeaa9, 0xeaa9, 0xeaa9, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 1, 
+  1, 1, 1, 1, 0xeaa9, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 1, 1, 
+  1, 1, 1, 1, 1, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 1, 1, 1, 
+  1, 1, 1, 1, 1, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 0xfdf0, 1, 
+  1, 1, 1, 1, 1, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 1, 1, 1, 
+  1, 1, 1, 1, 1, 0x4900, 0x4900, 0x4900, 0x4900, 1, 1, 1, 
+  1, 1, 1, 1, 1, 0x0000, 1, 1, 0x0000, 1, 1, 1
+};
+
+const short int push_left[]  = {
+  1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 1, 
+  1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 
+  1, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 1, 1, 1, 
+  0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 
+  1, 0xfdf0, 0x0000, 0xfdf0, 0xfdf0, 0xeaa9, 0xeaa9, 0xeaa9, 0xeaa9, 1, 1, 1, 
+  1, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xeaa9, 0xeaa9, 0xeaa9, 1, 1, 1, 
+  1, 1, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xfdf0, 0xeaa9, 1, 1, 1, 1, 
+  1, 1, 1, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 1, 1, 1, 1, 1, 
+  1, 0xfdf0, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 1, 1, 1, 1, 1, 
+  1, 1, 1, 0x0a3f, 0x0a3f, 0x0a3f, 0x0a3f, 1, 1, 1, 1, 1, 
+  1, 1, 1, 0x4900, 0x4900, 0x4900, 0x4900, 1, 1, 1, 1, 1, 
+  1, 1, 1, 0x0000, 1, 1, 0x0000, 1, 1, 1, 1, 1
+};
+
+const short int push_down[]  = {
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 1, 
+  1, 1, 1, 0xffe0, 0x0000, 0x0000, 0x0000, 0x0000, 0xffe0, 1, 1, 1, 
+  1, 1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 1, 
+  1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 
+  1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 
+  1, 1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 1, 
+  1, 1, 1, 0xffe0, 0x0000, 0xffff, 0xffff, 0x0000, 0xffe0, 1, 1, 1, 
+  1, 1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 1, 
+  1, 1, 1, 1, 0xfdf0, 1, 1, 0xfdf0, 1, 1, 1, 1
+};
+
+const short int push_up[]  = {
+  1, 1, 1, 1, 0xfdf0, 1, 1, 0xfdf0, 1, 1, 1, 1, 
+  1, 1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 1, 
+  1, 1, 1, 0xffe0, 0x0000, 0xffff, 0xffff, 0x0000, 0xffe0, 1, 1, 1, 
+  1, 1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 1, 
+  1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 
+  1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 
+  1, 1, 0xffe0, 0x0000, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 0x0000, 0xffe0, 1, 1, 
+  1, 1, 1, 0xffe0, 0x0000, 0x0000, 0x0000, 0x0000, 0xffe0, 1, 1, 1, 
+  1, 1, 1, 1, 0xffe0, 0xffe0, 0xffe0, 0xffe0, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+};
+
 char gameState[20][26][3];
 char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
                               {'-', '-', '-', ' ', ' ', ' ', '-', '-'},
@@ -464,7 +524,7 @@ int doneLocs[2][2] = {{5, 3},
                       {6, 1}}; 
 int activeLevel;
 
-void move_tile(int x, int y, int dirX, int dirY);
+void move_tile(int x, int y, int dirX, int dirY, bool changeChar);
 void teleport_tile(int x1, int y1, int x2, int y2);
 bool check_move_bounds(int x, int y, int dirX, int dirY);
 bool check_box_move(int boxX, int boxY, int dirX, int dirY);
@@ -478,7 +538,7 @@ void draw_gamestate();
 void draw_background();
 void wait_for_vsync();
 void erase_temp(int x, int y);
-void draw_character(int x, int y);
+void draw_character(int x, int y, const short int characterType[]);
 void draw_box(int x, int y, const short int boxArray[]);
 void draw_highlight(int x, int y);
 void draw_wall(int x, int y, int wallNum);
@@ -586,7 +646,7 @@ int main(void) {
           if(check_teleport(teleportX, teleportY, dirX, dirY, true)){
             if(pushAfterTeleport){
               //We must push a box on the otherside, then teleport
-              move_tile(teleportX+newDirX, teleportY+newDirY, newDirX, newDirY); //Move box on other side
+              move_tile(teleportX+newDirX, teleportY+newDirY, newDirX, newDirY, false); //Move box on other side
               teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY); //Teleport character
               characterX = teleportX+newDirX;
               characterY = teleportY+newDirY;
@@ -614,20 +674,20 @@ int main(void) {
             if(check_teleport(teleportX, teleportY, dirX, dirY, false)){
               //Box is being moved through a portal
               teleport_tile(characterX+dirX, characterY+dirY, teleportX+newDirX, teleportY+newDirY); //Teleport box
-              move_tile(characterX, characterY, dirX, dirY); //Move character
+              move_tile(characterX, characterY, dirX, dirY, true); //Move character
               characterX+=dirX;
               characterY+=dirY;
             }
           }else{
             //Box just being moved normally
-            move_tile(characterX+dirX, characterY+dirY, dirX, dirY); //Move box
-            move_tile(characterX, characterY, dirX, dirY); //Move character
+            move_tile(characterX+dirX, characterY+dirY, dirX, dirY, false); //Move box
+            move_tile(characterX, characterY, dirX, dirY, true); //Move character
             characterX+=dirX;
             characterY+=dirY;
           }
-        }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-' ){
+        }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-'){
           //No box, wall or boundary, can move character
-          move_tile(characterX, characterY, dirX, dirY);
+          move_tile(characterX, characterY, dirX, dirY, false);
           characterX+=dirX;
           characterY+=dirY;
         }
@@ -643,14 +703,40 @@ int main(void) {
 
 /*-------------------- MOVEMENT -------------------------*/
 //Move a tile(character, box, etc) in a certain direction
-void move_tile(int x, int y, int dirX, int dirY){
+void move_tile(int x, int y, int dirX, int dirY, bool changeChar){
   char temp = gameState[y][x][0];
   if (x == doneLocs[activeLevel-1][0] && y == doneLocs[activeLevel-1][1])
     gameState[y][x][0] = 'F';
   else
     gameState[y][x][0] = ' '; //Replace with empty
-  gameState[y+dirY][x+dirX][0] = temp;
+
+  if (changeChar) {
+    int idx = 0;
+    for(int i = 0;i<4;i++){
+      if(dirX==possibleMoves[i][0] && dirY==possibleMoves[i][1]){
+        idx = i;
+        break;
+      }
+    }
+    if (idx == 0) {
+      gameState[y+dirY][x+dirX][0] = 'D';
+    } else if (idx == 1) {
+      gameState[y+dirY][x+dirX][0] = 'L';
+    } else if (idx == 2) {
+      gameState[y+dirY][x+dirX][0] = 'U';
+    } else {
+      gameState[y+dirY][x+dirX][0] = 'R';
+    }
+  } else if (dirX != 0 || dirY != 0) {
+    if ((temp == 'R') || (temp == 'L') || (temp == 'U') || (temp == 'D'))
+      gameState[y+dirY][x+dirX][0] = 'C';
+    else
+     gameState[y+dirY][x+dirX][0] = temp;
+  } else {
+    gameState[y+dirY][x+dirX][0] = temp;
+  }
 }
+
 //teleport tile 1 to another tile 2
 void teleport_tile(int x1, int y1, int x2, int y2){
   char temp = gameState[y1][x1][0];
@@ -658,12 +744,37 @@ void teleport_tile(int x1, int y1, int x2, int y2){
     gameState[y1][x1][0] = 'F';
   else
     gameState[y1][x1][0] = ' '; //Replace with empty
-  gameState[y2][x2][0] = temp;
+  
+  if (pushAfterTeleport) {
+    int idx = 0;
+    for(int i = 0;i<4;i++){
+      if(newDirX==possibleMoves[i][0] && newDirY==possibleMoves[i][1]){
+        idx = i;
+        break;
+      }
+    }
+    if (idx == 0) {
+      gameState[y2][x2][0] = 'D';
+    } else if (idx == 1) {
+      gameState[y2][x2][0] = 'L';
+    } else if (idx == 2) {
+      gameState[y2][x2][0] = 'U';
+    } else {
+      gameState[y2][x2][0] = 'R';
+    }
+  } else {
+    if ((temp == 'R') || (temp == 'L') || (temp == 'U') || (temp == 'D'))
+      gameState[y2][x2][0] = 'C';
+    else
+      gameState[y2][x2][0] = temp;
+  }
 }
+
 //Check if this move is valid based on its bounds
 bool check_move_bounds(int x, int y, int dirX, int dirY){
   return gameState[y+dirY][x+dirX][0] !=  '-' && gameState[y+dirY][x+dirX][0] != 'W';
 }
+
 //Check if it is possible to move to 
 bool check_teleport(int teleportX, int teleportY, int dirX, int dirY, bool character){
   //Find the index of the passed in direction in possibleMoves
@@ -702,6 +813,7 @@ bool check_teleport(int teleportX, int teleportY, int dirX, int dirY, bool chara
   //No space even considering box push
   return false;
 }
+
 //check if box can be moved in the certain direction
 bool check_box_move(int boxX, int boxY, int dirX, int dirY){
   //Check if it is blocked by bounds
@@ -754,8 +866,8 @@ void draw_gamestate() {
   for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
     for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
       if(gameState[r][c][0]=='C'){
-        draw_character(mapOffsetX+c*12, mapOffsetY+r*12);
-      }else if(gameState[r][c][0]=='B' && c == doneLocs[activeLevel-1][0] && r == doneLocs[activeLevel-1][1]){
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12, character);
+      } else if(gameState[r][c][0]=='B' && c == doneLocs[activeLevel-1][0] && r == doneLocs[activeLevel-1][1]){
         draw_box(mapOffsetX+c*12, mapOffsetY+r*12, box_done);
       } else if (gameState[r][c][0]=='B') {
         draw_box(mapOffsetX+c*12, mapOffsetY+r*12, box);
@@ -765,6 +877,14 @@ void draw_gamestate() {
         draw_wall(mapOffsetX+c*12, mapOffsetY+r*12, 1);
       } else if(gameState[r][c][0] == 'P')  {
         draw_portal(mapOffsetX+c*12, mapOffsetY+r*12);
+      } else if (gameState[r][c][0] == 'U') {
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12, push_up);
+      } else if (gameState[r][c][0] == 'D') {
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12, push_down);
+      } else if (gameState[r][c][0] == 'L') {
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12, push_left);
+      } else if (gameState[r][c][0] == 'R') {
+        draw_character(mapOffsetX+c*12, mapOffsetY+r*12, push_right);
       }
     }
   }
@@ -822,12 +942,12 @@ void draw_highlight(int x, int y) {
 }
 
 // Function to draw character at specified location
-void draw_character(int x, int y) {
+void draw_character(int x, int y, const short int characterType[]) {
   int counter = 0;
   for (int i = 0; i < 12; i++) {
     for (int j = 0; j < 12; j++) {
-      if (character[counter] != 1) {
-        plot_pixel(x + j, y + i, character[counter]);
+      if (characterType[counter] != 1) {
+        plot_pixel(x + j, y + i, characterType[counter]);
       }
       counter++;
     }
