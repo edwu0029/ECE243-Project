@@ -571,10 +571,14 @@ void draw_portal(int x, int y);
 unsigned int digit_to_hex_val(unsigned int val);
 void set_hex(int hexNum, unsigned int val);
 
+// =================== PS2 Controller (Keyboard) =========================
+char make_code_to_letter(unsigned int val);
+
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   volatile int *keys_ptr = (int *)0xFF200050;
   volatile int *switches_ptr = (int *)0xFF200040;
+  volatile int *ps2_ptr = (int *)0xFF200100;
 
   hex0_ptr = (int *)0xFF200020;
 
@@ -640,6 +644,7 @@ int main(void) {
     // Level reset input
     int reset = *switches_ptr & 1;
     
+    /* ======== OLD MOVEMENT USING KEYS ===========
     // Character movement input
     int edgecapture = *(keys_ptr+3) & 0xF;
     int dirX = 0;
@@ -666,6 +671,56 @@ int main(void) {
         dirX++;
         *(keys_ptr+3) = edgecapture;
       }
+      ======== OLD MOVEMENT USING KEYS ===========*/
+
+    // ======== NEW MOVEMENT USING Keyboard ===========
+    int dirX = 0;
+    int dirY = 0;
+
+    int ps2_data, ps2_rvalid, ps2_input_val;
+    char key_pressed;
+    bool got_input = false;
+
+    //Poll keyboard for input
+    while(!got_input){
+      ps2_data = *ps2_ptr;
+      ps2_rvalid = ps2_data & 0x8000;
+      if(ps2_rvalid){
+        ps2_input_val = ps2_data & 0xFF;
+        key_pressed = make_code_to_letter(ps2_input_val);
+        // printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
+        set_hex(0, digit_to_hex_val(ps2_input_val));
+
+        //Poll until break code F0 (meaning key was unpressed)
+        while(ps2_input_val != 0xF0){
+          ps2_data = *ps2_ptr;
+          ps2_input_val = ps2_data & 0xFF;
+        }
+
+        got_input = true;
+      }
+    }
+    // printf("RAVAIL: %d\n", (ps2_data & 0xFF000000) >> 16);
+    // printf("Out of polling: %d or %c\n", ps2_input_val, key_pressed);
+    if (key_pressed==' ') {
+      reset_game(activeLevel);
+      numOfResets++;
+    } else {
+      printf("C's X: %d\n", characterX);
+      printf("C's Y: %d\n", characterY);
+      if(key_pressed=='W'){
+        //Key 0 pressed [UP]
+        dirY--;
+      }else if(key_pressed=='S'){
+        //Key 1 pressed [DOWN]
+        dirY++;
+      }else if(key_pressed=='A'){
+        //Key 2 pressed [LEFT]
+        dirX--;
+      }else if(key_pressed=='D'){
+        //Key 3 pressed [RIGHT]
+        dirX++;
+      }
     
       //Check if character move is in bounds
       if( (dirX!=0 || dirY!=0) && check_move_bounds(characterX, characterY, dirX, dirY)){
@@ -691,6 +746,7 @@ int main(void) {
               characterY = teleportY+newDirY;
 
               numOfSteps++;
+              printf("Character went through portal and pushed box on other side\n");
             }else{
               //Just teleport character
               teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY);
@@ -698,6 +754,7 @@ int main(void) {
               characterY = teleportY+newDirY;
 
               numOfSteps++;
+              printf("Character went through portal\n");
             }
           }
         }else if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
@@ -722,6 +779,7 @@ int main(void) {
               characterY+=dirY;
 
               numOfSteps++;
+              printf("Pushed Box through portal\n");
             }
           }else{
             //Box just being moved normally
@@ -731,6 +789,7 @@ int main(void) {
             characterY+=dirY;
 
             numOfSteps++;
+            printf("Pushed Box\n");
           }
         }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-'){
           //No box, wall or boundary, can move character
@@ -739,10 +798,10 @@ int main(void) {
           characterY+=dirY;
 
           numOfSteps++;
+          printf("Moved Character\n");
         }
       }
     }
-
   }
   /*-------------------- Wait for double buffer -------------------------*/
   wait_for_vsync(); // swap front and back buffers on VGA vertical sync
@@ -1083,4 +1142,23 @@ void set_hex(int hexNum, unsigned int val){
   }else if(hexNum==3){
     *hex0_ptr = (t & 0x00FFFFFF)+(val << 24);
   }
+}
+
+// ============= PS2 Controller ==============
+char make_code_to_letter(unsigned int val){
+    if(val==0x1C){
+        return 'A';
+    }else if(val==0x32){
+        return 'B';
+    }else if(val==0x1D){
+        return 'W';
+    }else if(val==0x1B){
+        return 'S';
+    }else if(val==0x23){
+        return 'D';
+    }else if(val==0x29){
+        return ' '; //Space
+    }else{
+        return '%'; //Return % by default
+    }
 }
