@@ -20,8 +20,12 @@ int main(void) {
     if(rvalid){
         val = data&0xFF;
         char pressed = make_code_to_letter(val);
+        if(pressed=='A'){
+          set_hex(0, digit_to_hex_val(1));
+        }else if(pressed=='B'){
+          set_hex(0, digit_to_hex_val(2));
+        }
         printf("Pressed: %d or %c\n", val, pressed);
-        set_hex(0, digit_to_hex_val(val));
     }
     //Poll until break code F0
     while(val!=0xF0){

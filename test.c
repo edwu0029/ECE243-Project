@@ -644,8 +644,9 @@ int main(void) {
     // Level reset input
     int reset = *switches_ptr & 1;
     
-    /* ======== OLD MOVEMENT USING KEYS ===========
+    //======== OLD MOVEMENT USING KEYS ===========
     // Character movement input
+    /*
     int edgecapture = *(keys_ptr+3) & 0xF;
     int dirX = 0;
     int dirY = 0;
@@ -671,9 +672,11 @@ int main(void) {
         dirX++;
         *(keys_ptr+3) = edgecapture;
       }
-      ======== OLD MOVEMENT USING KEYS ===========*/
+      */
+      //======== OLD MOVEMENT USING KEYS ===========
 
     // ======== NEW MOVEMENT USING Keyboard ===========
+    
     int dirX = 0;
     int dirY = 0;
 
@@ -685,14 +688,22 @@ int main(void) {
     while(!got_input){
       ps2_data = *ps2_ptr;
       ps2_rvalid = ps2_data & 0x8000;
+
+      int pressed_val;
       if(ps2_rvalid){
         ps2_input_val = ps2_data & 0xFF;
+        pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        // printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
+        printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
 
         //Poll until break code F0 (meaning key was unpressed)
         while(ps2_input_val != 0xF0){
+          ps2_data = *ps2_ptr;
+          ps2_input_val = ps2_data & 0xFF;
+        }
+        //Poll until value gets sent again [IDK Y]
+        while(ps2_input_val != pressed_val){
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
         }
@@ -721,7 +732,11 @@ int main(void) {
         //Key 3 pressed [RIGHT]
         dirX++;
       }
-    
+      
+
+
+
+      // ======= Execute Movement =============
       //Check if character move is in bounds
       if( (dirX!=0 || dirY!=0) && check_move_bounds(characterX, characterY, dirX, dirY)){
         if(gameState[characterY+dirY][characterX+dirX][0]=='P'){
@@ -802,9 +817,9 @@ int main(void) {
         }
       }
     }
+    wait_for_vsync(); // swap front and back buffers on VGA vertical sync
   }
   /*-------------------- Wait for double buffer -------------------------*/
-  wait_for_vsync(); // swap front and back buffers on VGA vertical sync
   pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 }
 
@@ -956,7 +971,7 @@ void clear_screen() {
 void undraw_gamestate(){
   for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
     for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
-      if(gameState[r][c][2]!=gameState[r][c][0] && gameState[r][c][0] != '-'){
+      if(gameState[r][c][1]!=gameState[r][c][0] && gameState[r][c][0] != '-'){
         //this tile needs to be undrawn since it differes
         erase_temp(mapVals[activeLevel - 1][0] + c*12, mapVals[activeLevel - 1][1] + r*12);
       }else{
@@ -1004,11 +1019,18 @@ void reset_game() {
     for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
       if (activeLevel == 1){
         gameState[r][c][0] = level1GameState[r][c];
+        gameState[r][c][1] = level2GameState[r][c];
+        gameState[r][c][2] = level2GameState[r][c];
       }else if(activeLevel == 2){
         gameState[r][c][0] = level2GameState[r][c];
+        gameState[r][c][1] = level2GameState[r][c];
+        gameState[r][c][2] = level2GameState[r][c];
       }
     }
   }
+  clear_screen();
+  draw_background();
+  draw_gamestate();
 }
 
 // Draw initial game background
