@@ -1633,6 +1633,9 @@ int main(void) {
         }
       }
 
+      //Reset pushAfterTeleport
+      pushAfterTeleport = false;
+
       if (isDone()) {
         if (activeLevel == 1) {
           draw_page(level1Done);
@@ -1651,7 +1654,7 @@ int main(void) {
     wait_for_vsync(); // swap front and back buffers on VGA vertical sync
   }
   /*-------------------- Wait for double buffer -------------------------*/
-  pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+  //pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 }
 
 /*-------------------- MOVEMENT -------------------------*/
