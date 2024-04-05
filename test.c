@@ -1478,62 +1478,33 @@ int main(void) {
           gameState[r][c][2] = gameState[r][c][1];
           gameState[r][c][1] = gameState[r][c][0];
         }
+      }
+    /*-------------------- Redraw -------------------------*/
+    draw_gamestate();
+    draw_stepsText();
+    
+
+    /*-------------------- Getting & Process Input -------------------------*/
+
     // Level reset input
     int reset = *switches_ptr & 1;
-    
-    //======== OLD MOVEMENT USING KEYS ===========
-    // Character movement input
-    /*
-    int edgecapture = *(keys_ptr+3) & 0xF;
+
+      // ======== NEW MOVEMENT USING Keyboard ===========
+   
     int dirX = 0;
     int dirY = 0;
 
-    if (reset) {
-      reset_game(activeLevel);
-      numOfResets++;
-    } else {
-      if(edgecapture & 0b1){
-        //Key 0 pressed [UP]
-        dirY--;
-        *(keys_ptr+3) = edgecapture;
-      }else if(edgecapture & 0b10){
-        //Key 1 pressed [DOWN]
-        dirY++;
-        *(keys_ptr+3) = edgecapture;
-      }else if(edgecapture & 0b100){
-        //Key 2 pressed [LEFT]
-        dirX--;
-        *(keys_ptr+3) = edgecapture;
-      }else if(edgecapture & 0b1000){
-        //Key 3 pressed [RIGHT]
-        dirX++;
-        *(keys_ptr+3) = edgecapture;
-      }
-      */
-      //======== OLD MOVEMENT USING KEYS ===========
 
-      /*-------------------- Redraw -------------------------*/
-      draw_gamestate();
-      draw_stepsText();
-    // ======== NEW MOVEMENT USING Keyboard ===========
-    
-    int dirX = 0;
-    int dirY = 0;
+    int ps2_data, ps2_rvalid, ps2_input_val;
+    char key_pressed;
+    bool got_input = false;
 
-      /*-------------------- Getting & Process Input -------------------------*/
 
-      // Level reset input
-      int reset = *switches_ptr & 1;
-      
-      /* ======== OLD MOVEMENT USING KEYS ===========
-      // Character movement input
-      int edgecapture = *(keys_ptr+3) & 0xF;
-      int dirX = 0;
-      int dirY = 0;
     //Poll keyboard for input
     while(!got_input){
       ps2_data = *ps2_ptr;
       ps2_rvalid = ps2_data & 0x8000;
+
 
       int pressed_val;
       if(ps2_rvalid){
@@ -1543,58 +1514,24 @@ int main(void) {
         printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
 
-      if (reset) {
-        reset_game(activeLevel);
-        numOfResets++;
-      } else {
-        if(edgecapture & 0b1){
-          //Key 0 pressed [UP]
-          dirY--;
-          *(keys_ptr+3) = edgecapture;
-        }else if(edgecapture & 0b10){
-          //Key 1 pressed [DOWN]
-          dirY++;
-          *(keys_ptr+3) = edgecapture;
-        }else if(edgecapture & 0b100){
-          //Key 2 pressed [LEFT]
-          dirX--;
-          *(keys_ptr+3) = edgecapture;
-        }else if(edgecapture & 0b1000){
-          //Key 3 pressed [RIGHT]
-          dirX++;
-          *(keys_ptr+3) = edgecapture;
-        }
-        ======== OLD MOVEMENT USING KEYS ===========*/
 
-      // ======== NEW MOVEMENT USING Keyboard ===========
-      int dirX = 0;
-      int dirY = 0;
-
-      int ps2_data, ps2_rvalid, ps2_input_val;
-      char key_pressed;
-      bool got_input = false;
-
-      //Poll keyboard for input
-      while(!got_input){
-        ps2_data = *ps2_ptr;
-        ps2_rvalid = ps2_data & 0x8000;
-        if(ps2_rvalid){
+        //Poll until break code F0 (meaning key was unpressed)
+        while(ps2_input_val != 0xF0){
+          ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
-          key_pressed = make_code_to_letter(ps2_input_val);
-          // printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
-          set_hex(0, digit_to_hex_val(ps2_input_val));
-
-          //Poll until break code F0 (meaning key was unpressed)
-          while(ps2_input_val != 0xF0){
-            ps2_data = *ps2_ptr;
-            ps2_input_val = ps2_data & 0xFF;
-          }
-
-          got_input = true;
         }
+        //Poll until value gets sent again [IDK Y]
+        while(ps2_input_val != pressed_val){
+          ps2_data = *ps2_ptr;
+          ps2_input_val = ps2_data & 0xFF;
+        }
+
+
+        got_input = true;
       }
-      // printf("RAVAIL: %d\n", (ps2_data & 0xFF000000) >> 16);
-      // printf("Out of polling: %d or %c\n", ps2_input_val, key_pressed);
+    }
+
+    
       if (key_pressed==' ') {
         reset_game(activeLevel);
         numOfResets++;
