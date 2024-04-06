@@ -1516,6 +1516,23 @@ const short int nine[]  = {
   0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000
 };
 
+const short int colon[]  = {
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
+  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
+};
+
 char gameState[20][26][3];
 char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
                               {'-', '-', '-', ' ', ' ', ' ', '-', '-'},
@@ -1572,6 +1589,7 @@ int stepsX = 73;
 int stepsY = 10;
 int numStepDigits = 1;
 int numOfResets;
+bool gameActive = false;
 
 //Hex values
 volatile int *hex0_ptr, *hex4_ptr;
@@ -1595,6 +1613,7 @@ void draw_background();
 void wait_for_vsync();
 void erase_temp(int x, int y);
 void erase_steps();
+void erase_time();
 void draw_character(int x, int y, const short int characterType[]);
 void draw_box(int x, int y, const short int boxArray[]);
 void draw_highlight(int x, int y);
@@ -1603,7 +1622,9 @@ void draw_portal(int x, int y);
 void draw_page(const short int page[]);
 void draw_stepsText();
 void draw_number(int x, int y, int number);
-void draw_one(int x, int y);
+void draw_numSmall(int x, int y, const short int character[]);
+void draw_time(int seconds);
+void draw_timeNum(int x, int y, int time);
 
 // =================== HEX DISPLAY =========================
 unsigned int digit_to_hex_val(unsigned int val);
@@ -1686,6 +1707,7 @@ int main(void) {
     //Main game loop
 
     while(1){
+      gameActive = true;
       /* ------------------- Update Step Counter -------------------------*/
       set_hex(0, digit_to_hex_val(numOfSteps%10));
       set_hex(1, digit_to_hex_val(numOfSteps/10));
@@ -1715,7 +1737,6 @@ int main(void) {
    
     int dirX = 0;
     int dirY = 0;
-
 
     int ps2_data, ps2_rvalid, ps2_input_val;
     char key_pressed;
@@ -1855,6 +1876,7 @@ int main(void) {
       if (isDone()) {
         //Stop timer
         *(timer_ptr + 1) = 0b1011; //STOP = 1, START=0, CONT=1, ITO=1
+        gameActive = false;
 
         if (activeLevel == 1) {
           draw_page(level1Done);
@@ -2065,6 +2087,33 @@ void draw_gamestate() {
   }
 }
 
+void draw_time(int seconds) {
+  int minutes = seconds / 60;
+  seconds += minutes * 60;
+
+  draw_timeNum(287, 10, seconds);
+  draw_numSmall(281, 10, colon);
+  draw_timeNum(259, 10, minutes);
+}
+
+void draw_timeNum(int x, int y, int time) {
+  int lsd = time % 10;
+  int msd = time / 10;
+  if (msd == 1) {
+    draw_numSmall(x, y, one);
+    x += 8;
+  } else {
+    draw_number(x, y, msd);
+    x += 12;
+  }
+
+  if (lsd == 1) {
+    draw_numSmall(x, y, one);
+  } else {
+    draw_number(x, y, lsd);
+  }
+}
+
 void draw_steps(int numSteps) {
   if (numOfSteps == 0) {
     draw_number(73, 10, 0);
@@ -2075,7 +2124,7 @@ void draw_steps(int numSteps) {
     numSteps /= 10;
     draw_steps(numSteps);
     if (digit == 1) {
-      draw_one(stepsX, stepsY);
+      draw_numSmall(stepsX, stepsY, one);
       stepsX += 8;
     } else {
       draw_number(stepsX, stepsY, digit);
@@ -2094,6 +2143,14 @@ void erase_steps() {
   for (int i = 0; i < 14; i++) {
     for(int j = 0; j < width; j++) {
       plot_pixel(73+j, 10+i, 0);
+    }
+  }
+}
+
+void erase_time() {
+  for (int i = 0; i < 14; i++) {
+    for(int j = 0; j < 50; j++) {
+      plot_pixel(259+j, 10+i, 0);
     }
   }
 }
@@ -2262,11 +2319,11 @@ void draw_number(int x, int y, int number) {
   }
 }
 
-void draw_one(int x, int y) {
+void draw_numSmall(int x, int y, const short int character[]) {
   int counter = 0;
   for (int i = 0; i < 14; i++) {
     for(int j = 0; j < 6; j++) {
-      plot_pixel(x+j, y+i, one[counter]);
+      plot_pixel(x+j, y+i, character[counter]);
       counter++;
     }
   }
@@ -2558,5 +2615,9 @@ void timer_isr() {
   set_hex(3, digit_to_hex_val(timeSeconds%10));
   set_hex(4, digit_to_hex_val((timeSeconds/10)&10));
   set_hex(5, digit_to_hex_val((timeSeconds/100)%10));
+  if (gameActive) {
+    erase_time();
+    draw_time(timeSeconds);
+  }
   return;
 }
