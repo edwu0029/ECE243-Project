@@ -1324,7 +1324,7 @@ const short int stepsText[]  = {
   0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 
   0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
 };
-
+// ============== IMPORTANT: FOLLOWING CODE IS FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 /*****************************************************************************/
 /* Macros for accessing the control registers. */
 /*****************************************************************************/
@@ -1344,7 +1344,7 @@ do { __builtin_wrctl(3, src); } while (0)
 do { dest = __builtin_rdctl(4); } while (0)
 #define NIOS2_READ_CPUID(dest) \
 do { dest = __builtin_rdctl(5); } while (0)
-
+// ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 
 char gameState[20][26][3];
 char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
@@ -1460,14 +1460,17 @@ int main(void) {
 
 
   /* ======= Set up Timer ==========*/
+  // ============== IMPORTANT: FOLLOWING CODE IS FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
   int one_sec = 100000000; //For the 1 MHz timer clock
   *(timer_ptr + 0x2) = one_sec & 0xFFFF; //Lower
   *(timer_ptr + 0x3) = (one_sec >> 16) & 0xFFFF; //Higher
   *(timer_ptr + 1) = 0b1111; //STOP = 1, START=0, CONT=1, ITO=1
 
-  /* ======= Enable interrupts ==========*/
+  //Enable interrupts
   NIOS2_WRITE_IENABLE( 0x1 ); // Set interrupt interval timer (bit 0) to 1
   NIOS2_WRITE_STATUS( 1 );
+
+  // ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 
   draw_page(startPage);
 
@@ -2109,7 +2112,8 @@ bool isDone() {
   return false;
 }
 
-// =================== Timer Interrupts =========================
+// ============== IMPORTANT: THE FOLLOWING CODE WAS TAKEN FROM THE DE1-SoC Manual ==============
+//(https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf)
 /* The assembly language code below handles Nios II reset processing */
 void the_reset (void) __attribute__ ((section (".reset")));
 void the_reset (void) {
@@ -2218,13 +2222,9 @@ void interrupt_handler(void)
   // else, ignore the interrupt
   return;
 }
+// ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 
-
-/********************************************************************************
-* Interval timer interrupt service routine
-* Shifts a pattern being displayed on the HEX displays. The shift direction is determined
-* by the external variable key_pressed.
-********************************************************************************/
+// timer interupt service routine
 void timer_isr() {
   volatile int * timer_ptr = (int *) 0xFF202000; // interval timer base address
   *(timer_ptr) = 0; // clear interrupt
