@@ -1325,6 +1325,27 @@ const short int stepsText[]  = {
   0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000
 };
 
+/*****************************************************************************/
+/* Macros for accessing the control registers. */
+/*****************************************************************************/
+#define NIOS2_READ_STATUS(dest) \
+do { dest = __builtin_rdctl(0); } while (0)
+#define NIOS2_WRITE_STATUS(src) \
+do { __builtin_wrctl(0, src); } while (0)
+#define NIOS2_READ_ESTATUS(dest) \
+do { dest = __builtin_rdctl(1); } while (0)
+#define NIOS2_READ_BSTATUS(dest) \
+do { dest = __builtin_rdctl(2); } while (0)
+#define NIOS2_READ_IENABLE(dest) \
+do { dest = __builtin_rdctl(3); } while (0)
+#define NIOS2_WRITE_IENABLE(src) \
+do { __builtin_wrctl(3, src); } while (0)
+#define NIOS2_READ_IPENDING(dest) \
+do { dest = __builtin_rdctl(4); } while (0)
+#define NIOS2_READ_CPUID(dest) \
+do { dest = __builtin_rdctl(5); } while (0)
+
+
 char gameState[20][26][3];
 char level1GameState[8][8] = {{'-', '-', '-', '-', '-', '-', '-', '-'},
                               {'-', '-', '-', ' ', ' ', ' ', '-', '-'},
@@ -1373,6 +1394,7 @@ int portalConnections[2][4] = {{0, 0, 0, 0},
 int doneLocs[2][2] = {{5, 3},
                       {7, 1}}; 
 int activeLevel;
+int timeSeconds;
 
 // Statistics for the current level
 int numOfSteps;
@@ -1406,21 +1428,21 @@ void draw_portal(int x, int y);
 void draw_page(const short int page[]);
 void draw_stepsText();
 
-
-// =================== HEX DISPLAY =========================
-unsigned int digit_to_hex_val(unsigned int val);
 void set_hex(int hexNum, unsigned int val);
-
-// =================== PS2 Controller (Keyboard) =========================
+unsigned int digit_to_hex_val(unsigned int val);
 char make_code_to_letter(unsigned int val);
+
+//interupts prototypes
+void interrupt_handler(void);
+void timer_isr(void);
 
 int main(void) {
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   volatile int *keys_ptr = (int *)0xFF200050;
   volatile int *switches_ptr = (int *)0xFF200040;
   volatile int *ps2_ptr = (int *)0xFF200100;
-
-  hex0_ptr = (int *)0xFF200020;
+  volatile int *timer_ptr = (int *) 0xFF202000;
+  hex0_ptr = (int *) 0xFF200020;
 
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) =
@@ -1434,6 +1456,17 @@ int main(void) {
   pixel_buffer_start = *(pixel_ctrl_ptr + 1);  // we draw on the back buffer
   clear_screen();  // pixel_buffer_start points to the pixel buffer
   wait_for_vsync();
+
+
+  /* ======= Set up Timer ==========*/
+  int one_sec = 100000000; //For the 1 MHz timer clock
+  *(timer_ptr + 0x2) = one_sec & 0xFFFF; //Lower
+  *(timer_ptr + 0x3) = (one_sec >> 16) & 0xFFFF; //Higher
+  *(timer_ptr + 1) = 0b011; //START=0, CONT=1, ITO=1
+
+  /* ======= Enable interrupts ==========*/
+  NIOS2_WRITE_IENABLE( 0x3 ); // Set interrupt interval timer (bit 0) to 1
+  NIOS2_WRITE_STATUS( 1 );
 
   draw_page(startPage);
 
@@ -1462,6 +1495,9 @@ int main(void) {
     //Initally set statistics for game
     numOfSteps = 0;
     numOfResets = 0;
+
+    //Start timer for level
+    *(timer_ptr + 1) = 0b111; //START=1, CONT=1, ITO=1
 
     //Main game loop
 
@@ -1511,7 +1547,7 @@ int main(void) {
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
+        // printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
 
 
@@ -1536,8 +1572,6 @@ int main(void) {
         reset_game(activeLevel);
         numOfResets++;
       } else {
-        printf("C's X: %d\n", characterX);
-        printf("C's Y: %d\n", characterY);
         if(key_pressed=='W'){
           //Key 0 pressed [UP]
           dirY--;
@@ -2067,4 +2101,131 @@ bool isDone() {
   if (gameState[doneLocs[activeLevel-1][1]][doneLocs[activeLevel-1][0]][0] == 'B')
     return true;
   return false;
+}
+
+// =================== Timer Interrupts =========================
+/* The assembly language code below handles Nios II reset processing */
+void the_reset (void) __attribute__ ((section (".reset")));
+void the_reset (void) {
+  asm (".set noat"); // magic, for the C compiler
+  asm (".set nobreak"); // magic, for the C compiler
+  asm ("movia r2, main"); // call the C language main program
+  asm ("jmp r2");
+}
+
+
+/* The assembly language code below handles Nios II exception processing. This code should not be
+* modified; instead, the C language code in the function interrupt_handler() can be modified as
+* needed for a given application. */
+void the_exception (void) __attribute__ ((section (".exceptions")));
+/*******************************************************************************
+* Exceptions code; by giving the code a section attribute with the name ".exceptions" we allow
+* the linker to locate this code at the proper exceptions vector address. This code calls the
+* interrupt handler and later returns from the exception.
+******************************************************************************/
+void the_exception (void) {
+  asm (".set noat"); // magic, for the C compiler
+  asm (".set nobreak"); // magic, for the C compiler
+  asm ( "subi sp, sp, 128");
+  asm ( "stw et, 96(sp)");
+  asm ( "rdctl et, ctl4");
+  asm ( "beq et, r0, SKIP_EA_DEC"); // interrupt is not external
+  asm ( "subi ea, ea, 4"); /* must decrement ea by one instruction for external
+  * interrupts, so that the instruction will be run */
+  asm ( "SKIP_EA_DEC:" );
+  asm ( "stw r1, 4(sp)" ); // save all registers
+  asm ( "stw r2, 8(sp)" );
+  asm ( "stw r3, 12(sp)" );
+  asm ( "stw r4, 16(sp)" );
+  asm ( "stw r5, 20(sp)" );
+  asm ( "stw r6, 24(sp)" );
+  asm ( "stw r7, 28(sp)" );
+  asm ( "stw r8, 32(sp)" );
+  asm ( "stw r9, 36(sp)" );
+  asm ( "stw r10, 40(sp)" );
+  asm ( "stw r11, 44(sp)" );
+  asm ( "stw r12, 48(sp)" );
+  asm ( "stw r13, 52(sp)" );
+  asm ( "stw r14, 56(sp)" );
+  asm ( "stw r15, 60(sp)" );
+  asm ( "stw r16, 64(sp)" );
+  asm ( "stw r17, 68(sp)" );
+  asm ( "stw r18, 72(sp)" );
+  asm ( "stw r19, 76(sp)" );
+  asm ( "stw r20, 80(sp)" );
+  asm ( "stw r21, 84(sp)" );
+  asm ( "stw r22, 88(sp)" );
+  asm ( "stw r23, 92(sp)" );
+  asm ( "stw r25, 100(sp)" ); // r25 = bt (skip r24 = et, because it was saved above)
+  asm ( "stw r26, 104(sp)" ); // r26 = gp
+  // skip r27 because it is sp, and there is no point in saving this
+  asm ( "stw r28, 112(sp)" ); // r28 = fp
+  asm ( "stw r29, 116(sp)" ); // r29 = ea
+  asm ( "stw r30, 120(sp)" ); // r30 = ba
+  asm ( "stw r31, 124(sp)" ); // r31 = ra
+  asm ( "addi fp, sp, 128" );
+  asm ( "call interrupt_handler" ); // call the C language interrupt handler
+  asm ( "ldw r1, 4(sp)" ); // restore all registers
+  asm ( "ldw r2, 8(sp)" );
+  asm ( "ldw r3, 12(sp)" );
+  asm ( "ldw r4, 16(sp)" );
+  asm ( "ldw r5, 20(sp)" );
+  asm ( "ldw r6, 24(sp)" );
+  asm ( "ldw r7, 28(sp)" );
+  asm ( "ldw r8, 32(sp)" );
+  asm ( "ldw r9, 36(sp)" );
+  asm ( "ldw r10, 40(sp)" );
+  asm ( "ldw r11, 44(sp)" );
+  asm ( "ldw r12, 48(sp)" );
+  asm ( "ldw r13, 52(sp)" );
+  asm ( "ldw r14, 56(sp)" );
+  asm ( "ldw r15, 60(sp)" );
+  asm ( "ldw r16, 64(sp)" );
+  asm ( "ldw r17, 68(sp)" );
+  asm ( "ldw r18, 72(sp)" );
+  asm ( "ldw r19, 76(sp)" );
+  asm ( "ldw r20, 80(sp)" );
+  asm ( "ldw r21, 84(sp)" );
+  asm ( "ldw r22, 88(sp)" );
+  asm ( "ldw r23, 92(sp)" );
+  asm ( "ldw r24, 96(sp)" );
+  asm ( "ldw r25, 100(sp)" ); // r25 = bt
+  asm ( "ldw r26, 104(sp)" ); // r26 = gp
+  // skip r27 because it is sp, and we did not save this on the stack
+  asm ( "ldw r28, 112(sp)" ); // r28 = fp
+  asm ( "ldw r29, 116(sp)" ); // r29 = ea
+  asm ( "ldw r30, 120(sp)" ); // r30 = ba
+  asm ( "ldw r31, 124(sp)" ); // r31 = ra
+  asm ( "addi sp, sp, 128" );
+  asm ( "eret" );
+}
+
+/********************************************************************************
+* Interrupt Service Routine: Determines the interrupt source and calls the appropriate subroutine
+*******************************************************************************/
+void interrupt_handler(void)
+{
+  int ipending;
+  NIOS2_READ_IPENDING(ipending);
+  if ( ipending & 0x1 ) // interval timer is interrupt level 0
+  timer_isr();
+  // else, ignore the interrupt
+  return;
+}
+
+
+/********************************************************************************
+* Interval timer interrupt service routine
+* Shifts a pattern being displayed on the HEX displays. The shift direction is determined
+* by the external variable key_pressed.
+********************************************************************************/
+void timer_isr() {
+  volatile int * timer_ptr = (int *) 0xFF202000; // interval timer base address
+  *(timer_ptr) = 0; // clear interrupt
+
+  timeSeconds++; //Increment time
+  set_hex(2, digit_to_hex_val(timeSeconds%10));
+  set_hex(3, digit_to_hex_val(timeSeconds/10));
+  printf("time: %d", timeSeconds);
+  return;
 }
