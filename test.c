@@ -1682,8 +1682,10 @@ int main(void) {
   activeLevel = levelSelect();
 
   while (1) {
+    printf("Loaded new level\n");
     clear_screen();
     draw_background();
+    printf("Loaded new background\n");
     characterX = mapVals[activeLevel - 1][4];
     characterY = mapVals[activeLevel - 1][5];
     for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
@@ -1889,6 +1891,7 @@ int main(void) {
         draw_page(levelSelectPage);
 
         activeLevel = levelSelect();
+        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         break;
       }
     }
@@ -2425,7 +2428,7 @@ int levelSelect() {
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
+        //printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
 
 
