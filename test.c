@@ -1401,7 +1401,7 @@ int numOfSteps;
 int numOfResets;
 
 //Hex values
-volatile int *hex0_ptr;
+volatile int *hex0_ptr, *hex4_ptr;
 
 void move_tile(int x, int y, int dirX, int dirY, bool changeChar);
 void teleport_tile(int x1, int y1, int x2, int y2);
@@ -1443,6 +1443,7 @@ int main(void) {
   volatile int *ps2_ptr = (int *)0xFF200100;
   volatile int *timer_ptr = (int *) 0xFF202000;
   hex0_ptr = (int *) 0xFF200020;
+  hex4_ptr = (int *) 0xFF200030;
 
   /* set front pixel buffer to Buffer 1 */
   *(pixel_ctrl_ptr + 1) =
@@ -1462,10 +1463,10 @@ int main(void) {
   int one_sec = 100000000; //For the 1 MHz timer clock
   *(timer_ptr + 0x2) = one_sec & 0xFFFF; //Lower
   *(timer_ptr + 0x3) = (one_sec >> 16) & 0xFFFF; //Higher
-  *(timer_ptr + 1) = 0b011; //START=0, CONT=1, ITO=1
+  *(timer_ptr + 1) = 0b1111; //STOP = 1, START=0, CONT=1, ITO=1
 
   /* ======= Enable interrupts ==========*/
-  NIOS2_WRITE_IENABLE( 0x3 ); // Set interrupt interval timer (bit 0) to 1
+  NIOS2_WRITE_IENABLE( 0x1 ); // Set interrupt interval timer (bit 0) to 1
   NIOS2_WRITE_STATUS( 1 );
 
   draw_page(startPage);
@@ -1495,9 +1496,10 @@ int main(void) {
     //Initally set statistics for game
     numOfSteps = 0;
     numOfResets = 0;
+    timeSeconds = 0;
 
     //Start timer for level
-    *(timer_ptr + 1) = 0b111; //START=1, CONT=1, ITO=1
+    *(timer_ptr + 1) = 0b0111; //START=1, CONT=1, ITO=1
 
     //Main game loop
 
@@ -1547,8 +1549,6 @@ int main(void) {
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        // printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
-        set_hex(0, digit_to_hex_val(ps2_input_val));
 
 
         //Poll until break code F0 (meaning key was unpressed)
@@ -1561,8 +1561,6 @@ int main(void) {
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
         }
-
-
         got_input = true;
       }
     }
@@ -1671,6 +1669,9 @@ int main(void) {
       pushAfterTeleport = false;
 
       if (isDone()) {
+        //Stop timer
+        *(timer_ptr + 1) = 0b1011; //STOP = 1, START=0, CONT=1, ITO=1
+
         if (activeLevel == 1) {
           draw_page(level1Done);
         } else {
@@ -2046,15 +2047,20 @@ unsigned int digit_to_hex_val(unsigned int val){
   }
 }
 void set_hex(int hexNum, unsigned int val){
-  unsigned int t = *hex0_ptr;
+  unsigned int t1 = *hex0_ptr;
+  unsigned int t2 = *hex4_ptr;
   if(hexNum==0){
-    *hex0_ptr = (t & 0xFFFFFF00)+(val);
+    *hex0_ptr = (t1 & 0xFFFFFF00)+(val);
   }else if(hexNum==1){
-    *hex0_ptr = (t & 0xFFFF00FF)+(val << 8);
+    *hex0_ptr = (t1 & 0xFFFF00FF)+(val << 8);
   }else if(hexNum==2){
-    *hex0_ptr = (t & 0xFF00FFFF)+(val << 16);
+    *hex0_ptr = (t1 & 0xFF00FFFF)+(val << 16);
   }else if(hexNum==3){
-    *hex0_ptr = (t & 0x00FFFFFF)+(val << 24);
+    *hex0_ptr = (t1 & 0x00FFFFFF)+(val << 24);
+  }else if(hexNum==4){
+    *hex4_ptr = (t2 & 0xFFFFFF00)+(val);
+  }else if(hexNum==5){
+    *hex4_ptr = (t2 & 0xFFFF00FF)+(val << 8);
   }
 }
 
@@ -2224,8 +2230,9 @@ void timer_isr() {
   *(timer_ptr) = 0; // clear interrupt
 
   timeSeconds++; //Increment time
-  set_hex(2, digit_to_hex_val(timeSeconds%10));
-  set_hex(3, digit_to_hex_val(timeSeconds/10));
-  printf("time: %d", timeSeconds);
+  
+  set_hex(3, digit_to_hex_val(timeSeconds%10));
+  set_hex(4, digit_to_hex_val((timeSeconds/10)&10));
+  set_hex(5, digit_to_hex_val((timeSeconds/100)%10));
   return;
 }
