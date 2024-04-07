@@ -1950,11 +1950,11 @@ char level2GameState[7][10] = {{'-', '-', '-', '-', '-', '-', '-', '-', '-', '-'
                               {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}};
 
 char level3GameState[7][10] = {{'-', '-', '-', '-', '-', '-', '-', '-', '-', '-'},
-                              {'-', 'C', ' ', '-', '-', '-', '-', 'F', '-', '-'},
-                              {'-', ' ', 'B', '-', '-', '-', '-', ' ', '-', '-'},
-                              {'-', ' ', 'B', 'P', '-', '-', '-', 'B', '-', '-'},
-                              {'-', ' ', 'B', '-', '-', '-', ' ', 'P', ' ', '-'},
-                              {'-', ' ', ' ', '-', '-', '-', '-', ' ', '-', '-'},
+                              {'-', 'C', ' ', ' ', ' ', ' ', ' ', 'F', ' ', '-'},
+                              {'-', ' ', 'B', ' ', ' ', ' ', ' ', ' ', ' ', '-'},
+                              {'-', ' ', 'B', 'P', ' ', ' ', ' ', 'B', ' ', '-'},
+                              {'-', ' ', 'B', ' ', ' ', ' ', ' ', 'P', ' ', '-'},
+                              {'-', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '-'},
                               {'-', '-', '-', '-', '-', '-', '-', '-', '-', '-'}};
 
 //First dimension: number of levels:
@@ -2627,12 +2627,17 @@ void reset_game() {
     for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
       if (activeLevel == 1){
         gameState[r][c][0] = level1GameState[r][c];
-        gameState[r][c][1] = level2GameState[r][c];
-        gameState[r][c][2] = level2GameState[r][c];
+        gameState[r][c][1] = level1GameState[r][c];
+        gameState[r][c][2] = level1GameState[r][c];
       }else if(activeLevel == 2){
         gameState[r][c][0] = level2GameState[r][c];
         gameState[r][c][1] = level2GameState[r][c];
         gameState[r][c][2] = level2GameState[r][c];
+      }
+      else if(activeLevel == 3){
+        gameState[r][c][0] = level3GameState[r][c];
+        gameState[r][c][1] = level3GameState[r][c];
+        gameState[r][c][2] = level3GameState[r][c];
       }
     }
   }
