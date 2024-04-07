@@ -1603,6 +1603,7 @@ void reset_game();
 int levelSelect();
 void switchPoll();
 bool isDone();
+void delay();
 
 void plot_pixel(int x, int y, short int line_color);
 void clear_screen();
@@ -1658,20 +1659,6 @@ int main(void) {
   clear_screen();  // pixel_buffer_start points to the pixel buffer
   wait_for_vsync();
 
-
-  /* ======= Set up Timer ==========*/
-  // ============== IMPORTANT: FOLLOWING CODE IS FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
-  int one_sec = 100000000; //For the 1 MHz timer clock
-  *(timer_ptr + 0x2) = one_sec & 0xFFFF; //Lower
-  *(timer_ptr + 0x3) = (one_sec >> 16) & 0xFFFF; //Higher
-  *(timer_ptr + 1) = 0b1111; //STOP = 1, START=0, CONT=1, ITO=1
-
-  //Enable interrupts
-  NIOS2_WRITE_IENABLE( 0x1 ); // Set interrupt interval timer (bit 0) to 1
-  NIOS2_WRITE_STATUS( 1 );
-
-  // ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
-
   draw_page(startPage);
 
   switchPoll();
@@ -1682,6 +1669,19 @@ int main(void) {
   activeLevel = levelSelect();
 
   while (1) {
+    /* ======= Set up Timer ==========*/
+    // ============== IMPORTANT: FOLLOWING CODE IS FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
+    int one_sec = 100000000; //For the 1 MHz timer clock
+    *(timer_ptr + 0x2) = one_sec & 0xFFFF; //Lower
+    *(timer_ptr + 0x3) = (one_sec >> 16) & 0xFFFF; //Higher
+    *(timer_ptr + 1) = 0b1111; //STOP = 1, START=0, CONT=1, ITO=1
+
+    //Enable interrupts
+    NIOS2_WRITE_IENABLE( 0x1 ); // Set interrupt interval timer (bit 0) to 1
+    NIOS2_WRITE_STATUS( 1 );
+
+    // ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
+
     printf("Loaded new level\n");
     clear_screen();
     draw_background();
@@ -1879,6 +1879,9 @@ int main(void) {
         //Stop timer
         *(timer_ptr + 1) = 0b1011; //STOP = 1, START=0, CONT=1, ITO=1
         gameActive = false;
+        undraw_gamestate();
+        draw_gamestate();
+        delay();
 
         if (activeLevel == 1) {
           draw_page(level1Done);
@@ -2025,6 +2028,21 @@ bool check_box_move(int boxX, int boxY, int dirX, int dirY){
     return false;
   }
   return true;
+}
+
+void delay() {
+  volatile int *timer_ptr = (int *) 0xFF202000;
+  // Stop timer and reset TO bit
+  *(timer_ptr) = 0;
+  *(timer_ptr + 1) = 0b1000;
+  int delay = 20000000; //For the 1 MHz timer clock
+  *(timer_ptr + 0x2) = delay & 0xFFFF; //Lower
+  *(timer_ptr + 0x3) = (delay >> 16) & 0xFFFF; //Higher
+  *(timer_ptr + 1) = 0b0110; // Start timer
+
+  while ((*timer_ptr & 0xb1) != 1) {
+
+  }
 }
 
 /*-------------------- DRAWING -------------------------*/
