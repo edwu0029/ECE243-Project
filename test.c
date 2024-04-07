@@ -2098,11 +2098,10 @@ int main(void) {
 
     // ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 
-    printf("Loaded new level\n");
     clear_screen();
     draw_background();
     draw_restart();
-    printf("Loaded new background\n");
+
     characterX = mapVals[activeLevel - 1][4];
     characterY = mapVals[activeLevel - 1][5];
     for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
@@ -2234,7 +2233,6 @@ int main(void) {
                 characterY = teleportY+newDirY;
 
                 numOfSteps++;
-                printf("Character went through portal and pushed box on other side\n");
               }else{
                 //Just teleport character
                 teleport_tile(characterX, characterY, teleportX+newDirX, teleportY+newDirY);
@@ -2242,7 +2240,6 @@ int main(void) {
                 characterY = teleportY+newDirY;
 
                 numOfSteps++;
-                printf("Character went through portal\n");
               }
             }
           }else if(gameState[characterY+dirY][characterX+dirX][0]=='B' && check_box_move(characterX+dirX, characterY+dirY, dirX, dirY)){
@@ -2267,7 +2264,6 @@ int main(void) {
                 characterY+=dirY;
 
                 numOfSteps++;
-                printf("Pushed Box through portal\n");
               }
             }else{
               //Box just being moved normally
@@ -2277,7 +2273,6 @@ int main(void) {
               characterY+=dirY;
 
               numOfSteps++;
-              printf("Pushed Box\n");
             }
           }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-'){
             //No box, wall or boundary, can move character
@@ -2286,7 +2281,6 @@ int main(void) {
             characterY+=dirY;
 
             numOfSteps++;
-            printf("Moved Character\n");
           }
         }
       }
@@ -2965,16 +2959,14 @@ int levelSelect() {
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        //printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
-
 
         //Poll until break code F0 (meaning key was unpressed)
         while(ps2_input_val != 0xF0){
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
         }
-        //Poll until value gets sent again [IDK Y]
+        //Poll until value gets sent again
         while(ps2_input_val != pressed_val){
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
@@ -3008,9 +3000,7 @@ void switchPoll() {
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
-        printf("Pressed: %d or %c\n", ps2_input_val, key_pressed);
         set_hex(0, digit_to_hex_val(ps2_input_val));
-
 
         //Poll until break code F0 (meaning key was unpressed)
         while(ps2_input_val != 0xF0){
