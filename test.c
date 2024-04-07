@@ -1697,7 +1697,7 @@ int main(void) {
         }
       }
     }
-    
+
     //Initally set statistics for game
     numOfSteps = 0;
     numOfResets = 0;
@@ -1772,7 +1772,7 @@ int main(void) {
       }
     }
 
-    
+
       if (key_pressed==' ') {
         reset_game(activeLevel);
         numOfResets++;
@@ -2092,7 +2092,7 @@ void draw_gamestate() {
 
 void draw_time(int seconds) {
   int minutes = seconds / 60;
-  seconds += minutes * 60;
+  seconds -= minutes * 60;
 
   draw_timeNum(287, 10, seconds);
   draw_numSmall(281, 10, colon);
@@ -2141,6 +2141,8 @@ void erase_steps() {
     numStepDigits = 1;
   } else if (numOfSteps < 100) {
     numStepDigits = 2;
+  } else if (numOfSteps < 1000) {
+    numStepDigits = 3;
   }
   int width = numStepDigits * 12;
   for (int i = 0; i < 14; i++) {
@@ -2416,8 +2418,7 @@ int levelSelect() {
   volatile int *ps2_ptr = (int *)0xFF200100;
     int ps2_data, ps2_rvalid, ps2_input_val;
     char key_pressed;
-    bool got_input = false;
-
+    
     //Poll keyboard for input
     while(1){
       ps2_data = *ps2_ptr;
