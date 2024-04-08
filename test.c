@@ -2007,6 +2007,7 @@ int level2BestTime = 2147483647;
 //Hex values
 volatile int *hex0_ptr, *hex4_ptr;
 
+// Game logic/other functions
 void move_tile(int x, int y, int dirX, int dirY, bool changeChar);
 void teleport_tile(int x1, int y1, int x2, int y2);
 bool check_move_bounds(int x, int y, int dirX, int dirY);
@@ -2018,6 +2019,7 @@ void switchPoll();
 bool isDone();
 void delay();
 
+// Drawing functions
 void plot_pixel(int x, int y, short int line_color);
 void clear_screen();
 void undraw_gamestate();
@@ -2054,6 +2056,7 @@ void interrupt_handler(void);
 void timer_isr(void);
 
 int main(void) {
+  // Initialize memory mapped register addresses
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   volatile int *keys_ptr = (int *)0xFF200050;
   volatile int *switches_ptr = (int *)0xFF200040;
@@ -2075,13 +2078,17 @@ int main(void) {
   clear_screen();  // pixel_buffer_start points to the pixel buffer
   wait_for_vsync();
 
+  // Draw the start page
   draw_page(startPage);
 
+  // Wait for spacebar input
   switchPoll();
 
+  // Draw the level select page
   clear_screen();
   draw_page(levelSelectPage);
 
+  // Get and set the level input from the user
   activeLevel = levelSelect();
 
   while (1) {
@@ -2098,12 +2105,15 @@ int main(void) {
 
     // ============== IMPORTANT: END OF CODE FROM THE DE1-SoC MANUAL (https://www-ug.eecg.toronto.edu/msl/handouts/DE1-SoC_Computer_Nios.pdf) ==============
 
+    // Draw the level background and restart instructions
     clear_screen();
     draw_background();
     draw_restart();
 
+    // Set the character's initial position
     characterX = mapVals[activeLevel - 1][4];
     characterY = mapVals[activeLevel - 1][5];
+    // Set the initial state of the level
     for (int r = 0; r < mapVals[activeLevel - 1][2]; r++) {
       for (int c = 0; c < mapVals[activeLevel - 1][3]; c++) {
         if (activeLevel == 1) {
@@ -2142,6 +2152,7 @@ int main(void) {
           gameState[r][c][1] = gameState[r][c][0];
         }
       }
+      // XY coordinates used for displaying steps
       stepsX = 75;
       stepsY = 10;
     /*-------------------- Redraw -------------------------*/
@@ -2288,53 +2299,66 @@ int main(void) {
       //Reset pushAfterTeleport
       pushAfterTeleport = false;
 
+      // Determine if the level has been solved
       if (isDone()) {
         //Stop timer
         *(timer_ptr + 1) = 0b1011; //STOP = 1, START=0, CONT=1, ITO=1
         gameActive = false;
+        // Display the new box sprite
         undraw_gamestate();
         draw_gamestate();
+        // Wait so that the box sprite can be seen
         delay();
 
+        // Display the level's statistics for level 1 and 2
         if (activeLevel == 1) {
           draw_page(level1Done);
+          // Keep track of best times and lowest number of steps 
           if(numOfSteps < level1BestSteps)
             level1BestSteps = numOfSteps;
+          if (timeSeconds < level1BestTime) 
+            level1BestTime = timeSeconds;
+
+          // Display number of steps taken and lowest record
           stepsX = 120;
           stepsY = 130;
           draw_stepsText(57, 130, false);
           stepsX = 232;
           draw_stepsText(177, 130, true);
-
-          if (timeSeconds < level1BestTime) 
-            level1BestTime = timeSeconds;
           
+          // Display time taken and lowest record
           draw_timeText(52, 165, false);
           draw_timeText(172, 165, true);
         } else if (activeLevel == 2) {
           draw_page(level2Done);
+          // Keep track of best times and lowest number of steps 
           if(numOfSteps < level2BestSteps)
             level2BestSteps = numOfSteps;
+          if (timeSeconds < level2BestTime) 
+            level2BestTime = timeSeconds;
+
+          // Display number of steps taken and lowest record
           stepsX = 120;
           stepsY = 130;
           draw_stepsText(57, 130, false);
           stepsX = 235;
           draw_stepsText(177, 130, true);
-
-          if (timeSeconds < level2BestTime) 
-            level2BestTime = timeSeconds;
           
+          // Display time taken and lowest record
           draw_timeText(52, 165, false);
           draw_timeText(172, 165, true);
         } else {
           draw_page(level3Done);
         }
         draw_continueText(65, 205);
+        // Wait for spacebar input
         switchPoll();
         clear_screen();
 
+        // Draw the level select page
         draw_page(levelSelectPage);
 
+        // Get and select level input from user
         activeLevel = levelSelect();
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         break;
@@ -2477,13 +2501,12 @@ void delay() {
   // Stop timer and reset TO bit
   *(timer_ptr) = 0;
   *(timer_ptr + 1) = 0b1000;
-  int delay = 20000000; //For the 1 MHz timer clock
+  int delay = 30000000; //For the 1 MHz timer clock
   *(timer_ptr + 0x2) = delay & 0xFFFF; //Lower
   *(timer_ptr + 0x3) = (delay >> 16) & 0xFFFF; //Higher
   *(timer_ptr + 1) = 0b0110; // Start timer
 
   while ((*timer_ptr & 0xb1) != 1) {
-
   }
 }
 
