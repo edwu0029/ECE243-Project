@@ -1997,7 +1997,6 @@ int numOfSteps;
 int stepsX = 73;
 int stepsY = 10;
 int numStepDigits = 1;
-int numOfResets;
 bool gameActive = false;
 int level1BestSteps = 2147483647;
 int level1BestTime = 2147483647;
@@ -2128,7 +2127,6 @@ int main(void) {
 
     //Initally set statistics for game
     numOfSteps = 0;
-    numOfResets = 0;
     timeSeconds = 0;
 
     //Start timer for level
@@ -2179,20 +2177,19 @@ int main(void) {
       ps2_data = *ps2_ptr;
       ps2_rvalid = ps2_data & 0x8000;
 
-
       int pressed_val;
       if(ps2_rvalid){
         ps2_input_val = ps2_data & 0xFF;
         pressed_val = ps2_data & 0xFF;
         key_pressed = make_code_to_letter(ps2_input_val);
 
-
         //Poll until break code F0 (meaning key was unpressed)
         while(ps2_input_val != 0xF0){
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
         }
-        //Poll until value gets sent again [IDK Y]
+
+        //Poll until value gets sent again
         while(ps2_input_val != pressed_val){
           ps2_data = *ps2_ptr;
           ps2_input_val = ps2_data & 0xFF;
@@ -2204,19 +2201,18 @@ int main(void) {
 
       if (key_pressed==' ') {
         reset_game(activeLevel);
-        numOfResets++;
       } else {
         if(key_pressed=='W'){
-          //Key 0 pressed [UP]
+          //W Pressed [UP]
           dirY--;
         }else if(key_pressed=='S'){
-          //Key 1 pressed [DOWN]
+          //S Pressed [DOWN]
           dirY++;
         }else if(key_pressed=='A'){
-          //Key 2 pressed [LEFT]
+          //A Pressed [LEFT]
           dirX--;
         }else if(key_pressed=='D'){
-          //Key 3 pressed [RIGHT]
+          //D Pressed [RIGHT]
           dirX++;
         }
       
@@ -2234,7 +2230,7 @@ int main(void) {
               teleportY = portalConnections[activeLevel-1][0];
               teleportX = portalConnections[activeLevel-1][1];
             }
-            //Check if character can teleport
+            //Check if character can teleport in
             if(check_teleport(teleportX, teleportY, dirX, dirY, true)){
               if(pushAfterTeleport){
                 //We must push a box on the otherside, then teleport
@@ -2286,7 +2282,7 @@ int main(void) {
               numOfSteps++;
             }
           }else if(gameState[characterY+dirY][characterX+dirX][0]!='B' && gameState[characterY+dirY][characterX+dirX][0]!='W' && gameState[characterY+dirY][characterX+dirX][0]!= '-'){
-            //No box, wall or boundary, can move character
+            //No box, wall or boundary, can move character normally
             move_tile(characterX, characterY, dirX, dirY, false);
             characterX+=dirX;
             characterY+=dirY;
@@ -2350,6 +2346,7 @@ int main(void) {
         } else {
           draw_page(level3Done);
         }
+        timeSeconds = 0;
         draw_continueText(65, 205);
         // Wait for spacebar input
         switchPoll();
@@ -2366,8 +2363,6 @@ int main(void) {
     }
     wait_for_vsync(); // swap front and back buffers on VGA vertical sync
   }
-  /*-------------------- Wait for double buffer -------------------------*/
-  //pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 }
 
 /*-------------------- MOVEMENT -------------------------*/
@@ -2973,11 +2968,12 @@ char make_code_to_letter(unsigned int val){
 }
 
 int levelSelect() {
+  //Waits for either 1, 2, 3 to be entered, will continue polling PS2 fifo otherwise
   volatile int *ps2_ptr = (int *)0xFF200100;
     int ps2_data, ps2_rvalid, ps2_input_val;
     char key_pressed;
     
-    //Poll keyboard for input
+    //Poll keyboard for input to wait for 1, 2, 3 (top keys, NOT numpad) to be pressed
     while(1){
       ps2_data = *ps2_ptr;
       ps2_rvalid = ps2_data & 0x8000;
@@ -3000,58 +2996,63 @@ int levelSelect() {
           ps2_input_val = ps2_data & 0xFF;
         }
 
+        //If either 1, 2, 3 are pressed, we can then return
         if (key_pressed == '1' || key_pressed == '2' || key_pressed == '3') {
           if (key_pressed == '1')  {
             return 1;
           } else if (key_pressed == '2') {
             return 2;
+          }else {
+            return 3;
           }
-          return 3;
         }
       }
     }
 }
 
 void switchPoll() {
-   volatile int *ps2_ptr = (int *)0xFF200100;
-    int ps2_data, ps2_rvalid, ps2_input_val;
-    char key_pressed;
-    bool got_input = false;
+  volatile int *ps2_ptr = (int *)0xFF200100;
+  int ps2_data, ps2_rvalid, ps2_input_val;
+  char key_pressed;
+  bool got_input = false;
 
-    //Poll keyboard for input
-    while(!got_input){
-      ps2_data = *ps2_ptr;
-      ps2_rvalid = ps2_data & 0x8000;
+  //Poll keyboard for input
+  while(!got_input){
+    ps2_data = *ps2_ptr;
+    ps2_rvalid = ps2_data & 0x8000;
 
-      int pressed_val;
-      if(ps2_rvalid){
+    int pressed_val;
+    if(ps2_rvalid){
+      ps2_input_val = ps2_data & 0xFF;
+      pressed_val = ps2_data & 0xFF;
+      key_pressed = make_code_to_letter(ps2_input_val);
+      set_hex(0, digit_to_hex_val(ps2_input_val));
+
+      //Poll until break code F0 (meaning key was unpressed)
+      while(ps2_input_val != 0xF0){
+        ps2_data = *ps2_ptr;
         ps2_input_val = ps2_data & 0xFF;
-        pressed_val = ps2_data & 0xFF;
-        key_pressed = make_code_to_letter(ps2_input_val);
-        set_hex(0, digit_to_hex_val(ps2_input_val));
+      }
+      //Poll until value gets sent again
+      while(ps2_input_val != pressed_val){
+        ps2_data = *ps2_ptr;
+        ps2_input_val = ps2_data & 0xFF;
+      }
 
-        //Poll until break code F0 (meaning key was unpressed)
-        while(ps2_input_val != 0xF0){
-          ps2_data = *ps2_ptr;
-          ps2_input_val = ps2_data & 0xFF;
-        }
-        //Poll until value gets sent again [IDK Y]
-        while(ps2_input_val != pressed_val){
-          ps2_data = *ps2_ptr;
-          ps2_input_val = ps2_data & 0xFF;
-        }
-
-        if (key_pressed == ' ') {
-          got_input = true;
-        }
+      //If space was entered, we are done polling
+      if (key_pressed == ' ') {
+        got_input = true;
       }
     }
+  }
 }
 
 bool isDone() {
-  if (gameState[doneLocs[activeLevel-1][1]][doneLocs[activeLevel-1][0]][0] == 'B')
+  if (gameState[doneLocs[activeLevel-1][1]][doneLocs[activeLevel-1][0]][0] == 'B'){
     return true;
-  return false;
+  } else {
+    return false;
+  }
 }
 
 // ============== IMPORTANT: THE FOLLOWING CODE WAS TAKEN FROM THE DE1-SoC Manual ==============
@@ -3173,6 +3174,7 @@ void timer_isr() {
 
   timeSeconds++; //Increment time
   
+  //Set digits
   set_hex(3, digit_to_hex_val(timeSeconds%10));
   set_hex(4, digit_to_hex_val((timeSeconds/10)&10));
   set_hex(5, digit_to_hex_val((timeSeconds/100)%10));
