@@ -2369,12 +2369,15 @@ int main(void) {
 //Move a tile(character, box, etc) in a certain direction
 void move_tile(int x, int y, int dirX, int dirY, bool changeChar){
   char temp = gameState[y][x][0];
+  // Check if something is moving off of the "done" location
   if (x == doneLocs[activeLevel-1][0] && y == doneLocs[activeLevel-1][1])
     gameState[y][x][0] = 'F';
   else
     gameState[y][x][0] = ' '; //Replace with empty
 
+  // Change the character sprite if the a box is being pushed
   if (changeChar) {
+    // Determine which direction the box is being pushed
     int idx = 0;
     for(int i = 0;i<4;i++){
       if(dirX==possibleMoves[i][0] && dirY==possibleMoves[i][1]){
@@ -2382,6 +2385,7 @@ void move_tile(int x, int y, int dirX, int dirY, bool changeChar){
         break;
       }
     }
+    // Change the game state code based on which direction the box is being pushed
     if (idx == 0) {
       gameState[y+dirY][x+dirX][0] = 'D';
     } else if (idx == 1) {
@@ -2392,11 +2396,13 @@ void move_tile(int x, int y, int dirX, int dirY, bool changeChar){
       gameState[y+dirY][x+dirX][0] = 'R';
     }
   } else if (dirX != 0 || dirY != 0) {
+    // If the character pushed in the previous move change the character back to the neutral position
     if ((temp == 'R') || (temp == 'L') || (temp == 'U') || (temp == 'D'))
       gameState[y+dirY][x+dirX][0] = 'C';
     else
      gameState[y+dirY][x+dirX][0] = temp;
   } else {
+    // Otherwise keep the same game state code
     gameState[y+dirY][x+dirX][0] = temp;
   }
 }
@@ -2404,12 +2410,15 @@ void move_tile(int x, int y, int dirX, int dirY, bool changeChar){
 //teleport tile 1 to another tile 2
 void teleport_tile(int x1, int y1, int x2, int y2){
   char temp = gameState[y1][x1][0];
+  // Check if something is moving off of the "done" location
   if (x1 == doneLocs[activeLevel-1][0] && y1 == doneLocs[activeLevel-1][1])
     gameState[y1][x1][0] = 'F';
   else
     gameState[y1][x1][0] = ' '; //Replace with empty
   
+  // Change the character sprite if the a box is being pushed after entering the portal
   if (pushAfterTeleport) {
+    // Determine which direction the box is being pushed
     int idx = 0;
     for(int i = 0;i<4;i++){
       if(newDirX==possibleMoves[i][0] && newDirY==possibleMoves[i][1]){
@@ -2417,6 +2426,7 @@ void teleport_tile(int x1, int y1, int x2, int y2){
         break;
       }
     }
+    // Change the game state code based on which direction the box is being pushed
     if (idx == 0) {
       gameState[y2][x2][0] = 'D';
     } else if (idx == 1) {
@@ -2427,9 +2437,10 @@ void teleport_tile(int x1, int y1, int x2, int y2){
       gameState[y2][x2][0] = 'R';
     }
   } else {
+    // If the character pushed in the previous move change the character back to the neutral position
     if ((temp == 'R') || (temp == 'L') || (temp == 'U') || (temp == 'D'))
       gameState[y2][x2][0] = 'C';
-    else
+    else // Otherwise keep the same game state code
       gameState[y2][x2][0] = temp;
   }
 }
@@ -2491,16 +2502,18 @@ bool check_box_move(int boxX, int boxY, int dirX, int dirY){
   return true;
 }
 
+// Function that adds a delay after the level is finished to show the changing of the box sprite
 void delay() {
   volatile int *timer_ptr = (int *) 0xFF202000;
   // Stop timer and reset TO bit
   *(timer_ptr) = 0;
   *(timer_ptr + 1) = 0b1000;
-  int delay = 30000000; //For the 1 MHz timer clock
-  *(timer_ptr + 0x2) = delay & 0xFFFF; //Lower
-  *(timer_ptr + 0x3) = (delay >> 16) & 0xFFFF; //Higher
+  int delay = 30000000; // Delay value
+  *(timer_ptr + 0x2) = delay & 0xFFFF; // Lower 16 bits
+  *(timer_ptr + 0x3) = (delay >> 16) & 0xFFFF; //Higher 16 bits
   *(timer_ptr + 1) = 0b0110; // Start timer
 
+  // Wait until the countdown is finished
   while ((*timer_ptr & 0xb1) != 1) {
   }
 }
@@ -2543,6 +2556,7 @@ void draw_gamestate() {
   int mapOffsetY = mapVals[activeLevel - 1][1];
   for(int r = 0;r<mapVals[activeLevel - 1][2];r++){
     for(int c = 0;c<mapVals[activeLevel - 1][3];c++){
+      // Draw sprites based on game state code
       if(gameState[r][c][0]=='C'){
         draw_character(mapOffsetX+c*12, mapOffsetY+r*12, character);
       } else if(gameState[r][c][0]=='B' && c == doneLocs[activeLevel-1][0] && r == doneLocs[activeLevel-1][1]){
@@ -2568,18 +2582,25 @@ void draw_gamestate() {
   }
 }
 
+// Function to draw the time on the screen at a specific location
 void draw_time(int x, int y, int seconds) {
+  // Calculate the number of seconds and minutes
   int minutes = seconds / 60;
   seconds -= minutes * 60;
 
+  // Draw the seconds, minutes, with a colon between
   draw_timeNum(x+28, y, seconds);
   draw_numSmall(x+22, y, colon);
   draw_timeNum(x, y, minutes);
 }
 
+// Function to draw a two digit number for displaying the time
 void draw_timeNum(int x, int y, int time) {
+  // Get the two digits
   int lsd = time % 10;
   int msd = time / 10;
+
+  // Display both digits
   if (msd == 1) {
     draw_numSmall(x, y, one);
     x += 8;
@@ -2595,15 +2616,18 @@ void draw_timeNum(int x, int y, int time) {
   }
 }
 
+// Function to draw the number of steps on the screen
 void draw_steps(int numSteps, bool best) {
   if (!best && numOfSteps == 0) {
     draw_number(73, 10, 0);
   } else {
     if (numSteps == 0)
       return;
+    // Get the right most digit 
     int digit = numSteps % 10;
     numSteps /= 10;
     draw_steps(numSteps, best);
+    // Draw the digits once all values have been  recursively obtained
     if (digit == 1) {
       draw_numSmall(stepsX, stepsY, one);
       stepsX += 8;
@@ -2614,7 +2638,9 @@ void draw_steps(int numSteps, bool best) {
   }
 }
 
+// Function that erases text that displays the steps
 void erase_steps() {
+  // Determine the number of digits in the number of steps
   if (numOfSteps < 10) {
     numStepDigits = 1;
   } else if (numOfSteps < 100) {
@@ -2622,6 +2648,7 @@ void erase_steps() {
   } else if (numOfSteps < 1000) {
     numStepDigits = 3;
   }
+  // Erase by adjusting the width accordingly
   int width = numStepDigits * 12;
   for (int i = 0; i < 14; i++) {
     for(int j = 0; j < width; j++) {
@@ -2630,6 +2657,7 @@ void erase_steps() {
   }
 }
 
+// Function to erase the elapsed level time
 void erase_time() {
   for (int i = 0; i < 14; i++) {
     for(int j = 0; j < 50; j++) {
@@ -2638,6 +2666,7 @@ void erase_time() {
   }
 }
 
+// Function to reset the game to the preset layouts
 void reset_game() {
   characterX = mapVals[activeLevel - 1][4];
   characterY = mapVals[activeLevel - 1][5];
@@ -2664,7 +2693,7 @@ void reset_game() {
   draw_gamestate();
 }
 
-// Draw initial game background
+// Draw initial game background based on the selected level
 void draw_background() {
 	int counter = 0;
   for (int i = 0; i < mapVals[activeLevel - 1][6]; i++) {
@@ -2681,6 +2710,7 @@ void draw_background() {
   }
 }
 
+// Function that draws the level's walls represented by crystals
 void draw_wall(int x, int y, int wallNum) {
   int counter = 0;
   for (int i = 0; i < 12; i++) {
@@ -2761,8 +2791,10 @@ void draw_page(const short int page[]) {
   }
 }
 
+// Function that displays the number of steps taken
 void draw_stepsText(int x, int y, bool best) {
   int counter = 0;
+  // Display the word "steps" or "best" based on statistic being displayed
   if (!best) {
     for (int i = 0; i < 14; i++) {
       for(int j = 0; j < 61; j++) {
@@ -2778,6 +2810,7 @@ void draw_stepsText(int x, int y, bool best) {
       }
     }
   }
+  // Display number of steps or lowest record based on statistic being displayed
   if (!best) {
     draw_steps(numOfSteps, best);
   } else {
@@ -2789,8 +2822,10 @@ void draw_stepsText(int x, int y, bool best) {
   }
 }
 
+// Function that displays the time taken on the level
 void draw_timeText(int x, int y, bool best) {
   int counter = 0;
+  // Display the word "time" or "best" based on statistic being displayed
   if (!best) {
     for (int i = 0; i < 14; i++) {
       for(int j = 0; j < 46; j++) {
@@ -2806,6 +2841,7 @@ void draw_timeText(int x, int y, bool best) {
       }
     }
   }
+  // Display number of steps or lowest record based on statistic being displayed
   if (!best) {
     draw_time(x+48, y, timeSeconds);
   } else {
@@ -2817,6 +2853,7 @@ void draw_timeText(int x, int y, bool best) {
   }
 }
 
+// Function that draws numbers (for the steps and time) depending on the required number to be displayed
 void draw_number(int x, int y, int number) {
   int counter = 0;
   for (int i = 0; i < 14; i++) {
@@ -2854,6 +2891,7 @@ void draw_number(int x, int y, int number) {
   }
 }
 
+// Function to draw smaller text (the number one and the colon)
 void draw_numSmall(int x, int y, const short int character[]) {
   int counter = 0;
   for (int i = 0; i < 14; i++) {
@@ -2864,6 +2902,7 @@ void draw_numSmall(int x, int y, const short int character[]) {
   }
 }
 
+// Function to draw restart instructions
 void draw_restart() {
   int counter = 0;
   for (int i = 0; i < 14; i++) {
@@ -2874,6 +2913,7 @@ void draw_restart() {
   }
 }
 
+// Function to draw continue instructions
 void draw_continueText(int x, int y) {
   int counter = 0;
   for (int i = 0; i < 14; i++) {
@@ -3047,6 +3087,7 @@ void switchPoll() {
   }
 }
 
+// Check if the game has been solved (whether the box is on the destination location)
 bool isDone() {
   if (gameState[doneLocs[activeLevel-1][1]][doneLocs[activeLevel-1][0]][0] == 'B'){
     return true;
@@ -3178,6 +3219,8 @@ void timer_isr() {
   set_hex(3, digit_to_hex_val(timeSeconds%10));
   set_hex(4, digit_to_hex_val((timeSeconds/10)&10));
   set_hex(5, digit_to_hex_val((timeSeconds/100)%10));
+  
+  // Draw the elapsed time
   if (gameActive) {
     erase_time();
     draw_time(259, 10, timeSeconds);
